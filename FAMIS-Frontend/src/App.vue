@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import ProfileBar from '@/components/ProfileBar.vue'
 </script>
 
 <template>
@@ -12,6 +13,9 @@ import { RouterLink, RouterView } from 'vue-router'
 
     <!-- Main Content -->
     <div class="main-content">
+      <div>
+        <ProfileBar />
+      </div>
       <RouterView />
     </div>
   </div>
@@ -50,6 +54,5 @@ import { RouterLink, RouterView } from 'vue-router'
 
 .main-content {
   flex: 1;
-  padding: 24px;
 }
 </style>
