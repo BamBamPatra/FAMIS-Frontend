@@ -22,6 +22,8 @@ function handleFileChange(event: Event) {
 
 function selectFile(file: File) {
   if (file.type === 'application/pdf') {
+    (window as any).myFile = file
+
     const pdfBlobUrl = URL.createObjectURL(file)
     router.push({ name: 'previewFile', query: { fileUrl: pdfBlobUrl, fileName: file.name } })
   } else {

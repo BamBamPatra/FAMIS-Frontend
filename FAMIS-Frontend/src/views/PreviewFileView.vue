@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
+import ExtractKey from '@/service/ExtractKey.ts' 
 
 const route = useRoute()
 const router = useRouter()
 
 const pdfUrl = ref<string | null>(null)
 const selectedFileName = ref<string | null>(null)
+const file = ref<File | null>(null)
 
 onMounted(() => {
   const fileUrl = route.query.fileUrl as string | null
@@ -14,15 +16,34 @@ onMounted(() => {
 
   if (fileUrl) pdfUrl.value = fileUrl
   if (fileName) selectedFileName.value = fileName
+
+  file.value = (window as any).myFile || null
+  if (!file.value) {
+    alert('No file data found to upload.')
+  }
 })
 
-function handleUpload() {
-  console.log('Uploading PDF from:', pdfUrl.value)
+async function handleUpload() {
+  if (!file.value) {
+    alert('No file selected for upload.')
+    return
+  }
+
+  try {
+    const response = await ExtractKey.processFile(file.value)
+    console.log('Response from backend:', response.data)  
+    alert('Upload success! Check console for response.')
+  } catch (error) {
+    alert('Upload failed. Please try again.')
+    console.error(error)
+  }
 }
 
+
 function handleCancel() {
-  router.push({ name: 'uploadFile' }) 
+  router.push({ name: 'uploadFile' })
 }
+
 </script>
 
 <template>
