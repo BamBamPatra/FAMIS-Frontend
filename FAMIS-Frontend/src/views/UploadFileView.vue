@@ -4,6 +4,11 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const selectedFile = ref<File | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
 
 function handleDrop(event: DragEvent) {
   event.preventDefault()
@@ -36,15 +41,16 @@ function selectFile(file: File) {
   <div class="upload-container">
 
     <!-- Drag and Drop -->
-    <div class="drop-zone" @drop="handleDrop" @dragover="handleDragOver">
+    <div class="drop-zone" @drop="handleDrop" @dragover="handleDragOver" @click="triggerFileInput">
 
       <!-- Upload icon -->
       <svg xmlns="http://www.w3.org/2000/svg" class="icon" aria-hidden="true" focusable="false" viewBox="0 0 448 512">
         <path d="M246.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-128 128c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 109.3 192 320c0 17.7 14.3 32 32 32s32-14.3 32-32l0-210.7 73.4 73.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-128-128zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64c0 53 43 96 96 96l256 0c53 0 96-43 96-96l0-64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64c0 17.7-14.3 32-32 32L96 448c-17.7 0-32-14.3-32-32l0-64z"/>
       </svg>
       <div class="text">DROP FILE</div>
+      <input type="file" id="fileInput" ref="fileInputRef" hidden @change="handleFileChange"/>
     </div>
-
+    
     <!-- File Select Button -->
     <input type="file" id="fileInput" hidden @change="handleFileChange" />
     <label for="fileInput" class="file-select-button">SELECT FILE</label>

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import ExtractKey from '@/service/ExtractKey.ts' 
+import ExtractKey from '@/service/ExtractKey.ts'
+import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 
+const financialStore = useFinancialKeyStore()
 const route = useRoute()
 const router = useRouter()
+const isUploading = ref(false)
 
 const pdfUrl = ref<string | null>(null)
 const selectedFileName = ref<string | null>(null)
@@ -15,12 +18,13 @@ onMounted(() => {
   const fileName = route.query.fileName as string | null
 
   if (fileUrl) pdfUrl.value = fileUrl
-  if (fileName) selectedFileName.value = fileName
+  if (fileName) {
+    selectedFileName.value = fileName
+    financialStore.setFileName(fileName)
+  }
 
   file.value = (window as any).myFile || null
-  if (!file.value) {
-    alert('No file data found to upload.')
-  }
+  if (!file.value) alert('No file data found to upload.')
 })
 
 async function handleUpload() {
@@ -29,28 +33,31 @@ async function handleUpload() {
     return
   }
 
+  isUploading.value = true
   try {
     const response = await ExtractKey.processFile(file.value)
-    console.log('Response from backend:', response.data)  
-    alert('Upload success! Check console for response.')
+    financialStore.setKeys(response.data) // 👉 Store in Pinia
+
+    router.push({ name: 'tabularResult' })
   } catch (error) {
-    alert('Upload failed. Please try again.')
+    alert('Upload failed.')
     console.error(error)
+  } finally {
+    isUploading.value = false
   }
 }
-
 
 function handleCancel() {
   router.push({ name: 'uploadFile' })
 }
-
 </script>
+
 
 <template>
   <div class="file-upload-wrapper" v-if="pdfUrl">
 
     <!-- Display File Name -->
-    <div v-if="selectedFileName" class="file-name" @click="pdfUrl && window.open(pdfUrl, '_blank')">
+    <div v-if="selectedFileName" class="file-name">
       {{ selectedFileName }}
     </div>
 
@@ -70,6 +77,15 @@ function handleCancel() {
   <div v-else>
     <p>No file selected.</p>
   </div>
+
+  <!-- Loading Overlay -->
+  <div v-if="isUploading" class="overlay">
+    <div class="spinner-box">
+      <div class="spinner"></div>
+      <p>Uploading and Processing...</p>
+    </div>
+  </div>
+
 </template>
 
 <style scoped>
@@ -81,12 +97,17 @@ function handleCancel() {
 }
 
 .file-name {
-  cursor: pointer;
-  color: #6a347f;
+  background-color: #582c6d; 
+  color: white;
+  font-size: x-large;
   font-weight: bold;
-  margin-bottom: 8px;
+  padding: 10px 24px;
+  border-radius: 12px;
   user-select: text;
-  text-decoration: underline;
+  cursor: pointer;
+  min-width: 200px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 80%;
 }
 
 .file-name:hover {
@@ -125,4 +146,43 @@ function handleCancel() {
   overflow: hidden;
   max-width: 100%;
 }
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.spinner-box {
+  text-align: center;
+  padding: 40px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #ccc;
+  border-top-color: #8e50b2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 </style>
