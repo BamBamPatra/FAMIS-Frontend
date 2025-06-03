@@ -1,6 +1,5 @@
-// stores/financialKeyStore.ts
 import { defineStore } from 'pinia'
-import type { FinancialKey } from '@/type/FinancialKey'
+import type { FinancialKey } from '@/type.ts'
 
 export const useFinancialKeyStore = defineStore('financialKey', {
   state: () => ({

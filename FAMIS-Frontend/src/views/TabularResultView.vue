@@ -13,9 +13,9 @@ const financialStore = useFinancialKeyStore()
     <table class="bill-table">
       <thead>
         <tr>
-          <th>Bill Type</th>
-          <th>Bill Number</th>
-          <th>Name</th>
+          <th>Document type</th>
+          <th>Invoice number</th>
+          <th>Supplier Name</th>
           <th>Date</th>
           <th>Amount</th>
           <th>Signature</th>
@@ -24,7 +24,7 @@ const financialStore = useFinancialKeyStore()
       </thead>
       <tbody>
         <tr v-for="(item, index) in financialStore.financialKeys" :key="index">
-          <td>{{ item.bill_type }}</td>
+          <td>{{ item.document_type }}</td>
           <td>{{ item.bill_number || '-' }}</td>
           <td>{{ item.supplier_name }}</td>
           <td>{{ item.payment_date }}</td>
