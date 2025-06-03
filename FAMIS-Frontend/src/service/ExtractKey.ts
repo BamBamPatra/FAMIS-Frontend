@@ -19,5 +19,10 @@ export default {
         'Content-Type': 'multipart/form-data'  
       }
     });
+  },
+  saveKeys(keys: Array<Record<string, any>>) {
+    return apiClient.post('/save', keys, {
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 };

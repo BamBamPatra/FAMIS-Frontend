@@ -1,7 +1,37 @@
 <script setup lang="ts">
-import { useFinancialKeyStore } from '@/stores/financialKeyStore'
+import { ref } from 'vue';
+import ExtractKey from '@/service/ExtractKey.ts';
+import { useFinancialKeyStore } from '@/stores/financialKeyStore';
 
-const financialStore = useFinancialKeyStore()
+const financialStore = useFinancialKeyStore();
+const isSaving = ref(false);
+
+async function handleSave() {
+  if (!financialStore.financialKeys.length) {
+    alert('ไม่มีข้อมูลให้บันทึก');
+    return;
+  }
+
+  isSaving.value = true;
+  try {
+    // เรียก saveKeys ส่ง array ของ financialKeys
+    const response = await ExtractKey.saveKeys(financialStore.financialKeys);
+
+    if (response.data?.status === 'success') {
+      alert('บันทึกสำเร็จ!');
+      // หากต้องการ redirect หรือเคลียร์ store ให้ทำตรงนี้
+      // เช่น router.push({ name: 'uploadFile' })
+    } else {
+      alert('เกิดข้อผิดพลาด: ' + (response.data?.message || 'Unknown error'));
+    }
+  } catch (err: any) {
+    console.error('Save error:', err);
+    const msg = err.response?.data?.message || 'Save failed';
+    alert('บันทึกไม่สำเร็จ: ' + msg);
+  } finally {
+    isSaving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -36,11 +66,16 @@ const financialStore = useFinancialKeyStore()
     </table>
 
     <div class="footer-btn">
-      <button class="finish-btn">FINISH</button>
+      <button 
+        class="finish-btn" 
+        @click="handleSave" 
+        :disabled="isSaving"
+      >
+        {{ isSaving ? 'Saving...' : 'FINISH' }}
+      </button>
     </div>
   </div>
 </template>
-
 
 <style scoped>
 .container {
@@ -148,5 +183,10 @@ const financialStore = useFinancialKeyStore()
   border-radius: 8px;
   border: none;
   cursor: pointer;
+}
+
+.finish-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
