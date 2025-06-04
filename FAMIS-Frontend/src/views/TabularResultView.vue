@@ -14,13 +14,22 @@ async function handleSave() {
 
   isSaving.value = true;
   try {
-    // เรียก saveKeys ส่ง array ของ financialKeys
-    const response = await ExtractKey.saveKeys(financialStore.financialKeys);
+    // สร้าง payload ตามที่ backend /save คาดไว้
+    const payload = {
+      user_id: '1', // mock user_id จาก UserAccount
+      filename: financialStore.fileName || 'unknown.pdf',
+      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`, // mock path บน server
+      structured_data: financialStore.financialKeys
+    };
+
+    // เรียก saveKeys ส่ง payload object แทน array เดียว
+    const response = await ExtractKey.saveKeys(payload);
 
     if (response.data?.status === 'success') {
       alert('บันทึกสำเร็จ!');
-      // หากต้องการ redirect หรือเคลียร์ store ให้ทำตรงนี้
-      // เช่น router.push({ name: 'uploadFile' })
+      // หากต้องการ redirect หรือ เคลียร์ store ให้ทำตรงนี้
+      // เช่น financialStore.setKeys([]);
+      // หรือ router.push({ name: 'uploadFile' });
     } else {
       alert('เกิดข้อผิดพลาด: ' + (response.data?.message || 'Unknown error'));
     }
@@ -66,9 +75,9 @@ async function handleSave() {
     </table>
 
     <div class="footer-btn">
-      <button 
-        class="finish-btn" 
-        @click="handleSave" 
+      <button
+        class="finish-btn"
+        @click="handleSave"
         :disabled="isSaving"
       >
         {{ isSaving ? 'Saving...' : 'FINISH' }}
@@ -126,18 +135,18 @@ async function handleSave() {
 
 .bill-table {
   width: 100%;
-  border-collapse: separate; 
-  border-spacing: 0; 
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 30px;
   margin-bottom: 30px;
 }
 
 .bill-table th,
 .bill-table td {
-  border-top: none;   
-  border-bottom: none; 
-  border-left: 1px solid #000;  
-  border-right: 1px solid #000; 
+  border-top: none;
+  border-bottom: none;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
   padding: 12px;
   text-align: center;
 }
@@ -168,7 +177,6 @@ async function handleSave() {
 .bill-table td {
   padding: 20px 12px;
 }
-
 
 .footer-btn {
   display: flex;

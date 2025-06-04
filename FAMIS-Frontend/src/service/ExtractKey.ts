@@ -20,8 +20,8 @@ export default {
       }
     });
   },
-  saveKeys(keys: Array<Record<string, any>>) {
-    return apiClient.post('/save', keys, {
+  saveKeys(payload: Record<string, any>) {
+    return apiClient.post('/save', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
   }
