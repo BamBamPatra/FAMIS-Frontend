@@ -2,14 +2,30 @@
 import { ref } from 'vue';
 import ExtractKey from '@/service/ExtractKey.ts';
 import { useFinancialKeyStore } from '@/stores/financialKeyStore';
+import Popup from '@/components/PopupAlert.vue'
+import { useRouter } from 'vue-router'
 
 const financialStore = useFinancialKeyStore();
 const isSaving = ref(false);
+const router = useRouter()
+
+const showPopup = ref(false)
+const popupMessage = ref('')
+
+function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
+  popupMessage.value = message
+  showPopup.value = true
+  setTimeout(() => {
+    showPopup.value = false
+    if (onClose) onClose()  
+  }, duration)
+}
+
 
 async function handleSave() {
   if (!financialStore.financialKeys.length) {
-    alert('ไม่มีข้อมูลให้บันทึก');
-    return;
+    showAutoClosePopup("No information to record.")
+    return
   }
 
   isSaving.value = true;
@@ -22,21 +38,21 @@ async function handleSave() {
       structured_data: financialStore.financialKeys
     };
 
-    // เรียก saveKeys ส่ง payload object แทน array เดียว
+
     const response = await ExtractKey.saveKeys(payload);
 
     if (response.data?.status === 'success') {
-      alert('บันทึกสำเร็จ!');
-      // หากต้องการ redirect หรือ เคลียร์ store ให้ทำตรงนี้
-      // เช่น financialStore.setKeys([]);
-      // หรือ router.push({ name: 'uploadFile' });
+      showAutoClosePopup("Successfully recorded!", 1500, () => {
+      router.push({ name: 'uploadFile' })  
+    })
+    return  
     } else {
-      alert('เกิดข้อผิดพลาด: ' + (response.data?.message || 'Unknown error'));
+      alert('Error: ' + (response.data?.message || 'Unknown error'));
     }
   } catch (err: any) {
     console.error('Save error:', err);
     const msg = err.response?.data?.message || 'Save failed';
-    alert('บันทึกไม่สำเร็จ: ' + msg);
+    showAutoClosePopup("Fail to record: " + msg)
   } finally {
     isSaving.value = false;
   }
@@ -83,6 +99,10 @@ async function handleSave() {
         {{ isSaving ? 'Saving...' : 'FINISH' }}
       </button>
     </div>
+
+    <!-- Popup ALert -->
+    <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
+    
   </div>
 </template>
 
@@ -184,7 +204,7 @@ async function handleSave() {
 }
 
 .finish-btn {
-  background-color: #c1a5d4;
+  background-color: #a675c6;
   color: white;
   padding: 10px 24px;
   font-weight: bold;
@@ -196,5 +216,42 @@ async function handleSave() {
 .finish-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Popup alert */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.popup-content {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.popup-content p {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.popup-content button {
+  background-color: #4b255f;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 </style>

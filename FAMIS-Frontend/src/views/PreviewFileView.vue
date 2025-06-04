@@ -3,6 +3,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import ExtractKey from '@/service/ExtractKey.ts'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
+import Popup from '@/components/PopupAlert.vue'
 
 const financialStore = useFinancialKeyStore()
 const route = useRoute()
@@ -12,6 +13,17 @@ const isUploading = ref(false)
 const pdfUrl = ref<string | null>(null)
 const selectedFileName = ref<string | null>(null)
 const file = ref<File | null>(null)
+
+const showPopup = ref(false)
+const popupMessage = ref('')
+
+function showAutoClosePopup(message: string, duration = 1500) {
+  popupMessage.value = message
+  showPopup.value = true
+  setTimeout(() => {
+    showPopup.value = false
+  }, duration)
+}
 
 onMounted(() => {
   const fileUrl = route.query.fileUrl as string | null
@@ -24,23 +36,26 @@ onMounted(() => {
   }
 
   file.value = (window as any).myFile || null
-  if (!file.value) alert('No file data found to upload.')
+  if (!file.value) 
+  showAutoClosePopup("No file data found to upload.")
+  return
 })
+
 
 async function handleUpload() {
   if (!file.value) {
-    alert('No file selected for upload.')
+    showAutoClosePopup("No file selected for upload.")
     return
   }
 
   isUploading.value = true
   try {
     const response = await ExtractKey.processFile(file.value)
-    financialStore.setKeys(response.data) // 👉 Store in Pinia
+    financialStore.setKeys(response.data) // Store in Pinia
 
     router.push({ name: 'tabularResult' })
   } catch (error) {
-    alert('Upload failed.')
+    showAutoClosePopup("Upload failed.")
     console.error(error)
   } finally {
     isUploading.value = false
@@ -85,6 +100,9 @@ function handleCancel() {
       <p>Uploading and Processing...</p>
     </div>
   </div>
+
+  <!-- Popup ALert -->
+  <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
 
 </template>
 
@@ -185,4 +203,40 @@ function handleCancel() {
   }
 }
 
+/* Popup alert */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.popup-content {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.popup-content p {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.popup-content button {
+  background-color: #4b255f;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
 </style>

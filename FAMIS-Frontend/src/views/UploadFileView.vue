@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import Popup from '@/components/PopupAlert.vue'
 
 const router = useRouter()
 const selectedFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const showPopup = ref(false)
+const popupMessage = ref('')
 
 function triggerFileInput() {
   fileInputRef.value?.click()
@@ -25,16 +29,46 @@ function handleFileChange(event: Event) {
   if (file) selectFile(file)
 }
 
-function selectFile(file: File) {
-  if (file.type === 'application/pdf') {
-    (window as any).myFile = file
-
-    const pdfBlobUrl = URL.createObjectURL(file)
-    router.push({ name: 'previewFile', query: { fileUrl: pdfBlobUrl, fileName: file.name } })
-  } else {
-    alert('Only PDF file')
-  }
+function showAutoClosePopup(message: string, duration = 1500) {
+  popupMessage.value = message
+  showPopup.value = true
+  setTimeout(() => {
+    showPopup.value = false
+  }, duration)
 }
+
+function selectFile(file: File) {
+  const allowedTypes = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "application/zip",
+    "application/x-zip-compressed"
+  ]
+  const maxSize = 25 * 1024 * 1024 // 25MB
+
+  if (!allowedTypes.includes(file.type)) {
+    showAutoClosePopup("Unsupported file format. Please upload PDF, PNG, JPG or ZIP.")
+    return
+  }
+
+  if (file.size > maxSize) {
+    showAutoClosePopup("File is too large. Maximum size is 25MB.")
+    return
+  }
+
+  (window as any).myFile = file
+  const fileUrl = URL.createObjectURL(file)
+
+  router.push({
+    name: "previewFile",
+    query: {
+      fileUrl: fileUrl,
+      fileName: file.name
+    }
+  })
+}
+
 </script>
 
 <template>
@@ -54,6 +88,10 @@ function selectFile(file: File) {
     <!-- File Select Button -->
     <input type="file" id="fileInput" hidden @change="handleFileChange" />
     <label for="fileInput" class="file-select-button">SELECT FILE</label>
+
+    <!-- Popup ALert -->
+    <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
+
   </div>
 </template>
 
@@ -108,4 +146,42 @@ function selectFile(file: File) {
   width: 200px;
   text-align: center;
 }
+
+/* Popup alert */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.popup-content {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.popup-content p {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.popup-content button {
+  background-color: #4b255f;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 </style>
