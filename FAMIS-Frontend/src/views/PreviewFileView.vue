@@ -148,7 +148,7 @@ function handleCancel() {
 }
 
 .cancel-btn {
-  background-color: #d64545;
+  background-color: #CD3F41;
   color: white;
   padding: 10px 20px;
   border-radius: 4px;

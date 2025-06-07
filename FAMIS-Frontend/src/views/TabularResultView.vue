@@ -32,9 +32,9 @@ async function handleSave() {
   try {
     // สร้าง payload ตามที่ backend /save คาดไว้
     const payload = {
-      user_id: '1', // mock user_id จาก UserAccount
+      user_id: '1', // mock user_id UserAccount
       filename: financialStore.fileName || 'unknown.pdf',
-      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`, // mock path บน server
+      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`, // mock path on server
       structured_data: financialStore.financialKeys
     };
 
@@ -65,6 +65,7 @@ async function handleSave() {
       {{ financialStore.fileName }}
     </div>
 
+    <!-- Table Result -->
     <table class="bill-table">
       <thead>
         <tr>
@@ -90,13 +91,18 @@ async function handleSave() {
       </tbody>
     </table>
 
+    <!-- Cancle Button -->
     <div class="footer-btn">
+      <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">
+        CANCEL
+      </button>
+
       <button
-        class="finish-btn"
+        class="confirm-btn"
         @click="handleSave"
         :disabled="isSaving"
       >
-        {{ isSaving ? 'Saving...' : 'FINISH' }}
+        {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
     </div>
 
@@ -153,6 +159,7 @@ async function handleSave() {
   justify-content: center;
 }
 
+/* Table */
 .bill-table {
   width: 100%;
   border-collapse: separate;
@@ -203,7 +210,8 @@ async function handleSave() {
   justify-content: flex-end;
 }
 
-.finish-btn {
+/* Confirm Button */
+.confirm-btn {
   background-color: #a675c6;
   color: white;
   padding: 10px 24px;
@@ -213,10 +221,28 @@ async function handleSave() {
   cursor: pointer;
 }
 
-.finish-btn:disabled {
+.confirm-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Cancle Button */
+.cancel-btn {
+  background-color: #CD3F41;
+  color: #333;
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  margin-right: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background-color: #bbb;
+}
+
 
 /* Popup alert */
 .popup {
