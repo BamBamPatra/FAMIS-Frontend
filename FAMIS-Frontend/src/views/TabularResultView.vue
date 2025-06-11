@@ -1,26 +1,53 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import ExtractKey from '@/service/ExtractKey.ts';
-import { useFinancialKeyStore } from '@/stores/financialKeyStore';
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useFinancialKeyStore } from '@/stores/financialKeyStore'
+import ExtractKey from '@/service/ExtractKey.ts'
 import Popup from '@/components/PopupAlert.vue'
-import { useRouter } from 'vue-router'
 
-const financialStore = useFinancialKeyStore();
-const isSaving = ref(false);
 const router = useRouter()
+const route = useRoute()
+const financialStore = useFinancialKeyStore()
 
 const showPopup = ref(false)
 const popupMessage = ref('')
+const isSaving = ref(false)
+
+const taskId = route.params.taskId as string | undefined
+
+onMounted(async () => {
+  try {
+    if (!taskId) {
+      showPopup.value = true
+      popupMessage.value = 'ไม่พบ Task ID ใน URL'
+      return
+    }
+    const response = await ExtractKey.getStatus(taskId)
+    console.log('Fetched result:', response.data)
+
+    if (response.data.status === 'error') {
+      showPopup.value = true
+      popupMessage.value = response.data.message || 'Error fetching data'
+      return
+    }
+
+    financialStore.setKeys(response.data.result) // ถ้า backend ส่ง field result จริง ๆ
+    financialStore.setFileName(`task_${taskId}.pdf`)
+  } catch (error) {
+    console.error('Failed to load task result:', error)
+    showPopup.value = true
+    popupMessage.value = 'Failed to load result'
+  }
+})
 
 function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
   popupMessage.value = message
   showPopup.value = true
   setTimeout(() => {
     showPopup.value = false
-    if (onClose) onClose()  
+    if (onClose) onClose()
   }, duration)
 }
-
 
 async function handleSave() {
   if (!financialStore.financialKeys.length) {
@@ -28,33 +55,30 @@ async function handleSave() {
     return
   }
 
-  isSaving.value = true;
+  isSaving.value = true
   try {
-    // สร้าง payload ตามที่ backend /save คาดไว้
     const payload = {
-      user_id: '1', // mock user_id UserAccount
+      user_id: '1', 
       filename: financialStore.fileName || 'unknown.pdf',
-      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`, // mock path on server
+      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`,
       structured_data: financialStore.financialKeys
-    };
+    }
 
-
-    const response = await ExtractKey.saveKeys(payload);
+    const response = await ExtractKey.saveKeys(payload)
 
     if (response.data?.status === 'success') {
       showAutoClosePopup("Successfully recorded!", 1500, () => {
-      router.push({ name: 'uploadFile' })  
-    })
-    return  
+        router.push({ name: 'uploadFile' })
+      })
     } else {
-      alert('Error: ' + (response.data?.message || 'Unknown error'));
+      alert('Error: ' + (response.data?.message || 'Unknown error'))
     }
   } catch (err: any) {
-    console.error('Save error:', err);
-    const msg = err.response?.data?.message || 'Save failed';
+    console.error('Save error:', err)
+    const msg = err.response?.data?.message || 'Save failed'
     showAutoClosePopup("Fail to record: " + msg)
   } finally {
-    isSaving.value = false;
+    isSaving.value = false
   }
 }
 </script>
@@ -79,7 +103,7 @@ async function handleSave() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, index) in financialStore.financialKeys" :key="index">
+        <tr v-for="item in financialStore.financialKeys" :key="item.id || item.bill_number || item.page">
           <td>{{ item.document_type }}</td>
           <td>{{ item.bill_number || '-' }}</td>
           <td>{{ item.supplier_name }}</td>

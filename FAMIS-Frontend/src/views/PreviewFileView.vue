@@ -41,7 +41,6 @@ onMounted(() => {
   return
 })
 
-
 async function handleUpload() {
   if (!file.value) {
     showAutoClosePopup("No file selected for upload.")
@@ -51,9 +50,15 @@ async function handleUpload() {
   isUploading.value = true
   try {
     const response = await ExtractKey.processFile(file.value)
-    financialStore.setKeys(response.data) // Store in Pinia
+    const taskId = response.data.task_id
 
-    router.push({ name: 'tabularResult' })
+    // 🔥 บันทึก taskId ลงระบบ noti (เช่น localStorage หรือ Pinia)
+    // ตัวอย่าง: สมมติเราใช้ localStorage
+    const oldTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
+    const newTask = { id: taskId, name: selectedFileName.value, status: 'processing' }
+    localStorage.setItem('notiTasks', JSON.stringify([...oldTasks, newTask]))
+
+    router.push({ name: 'uploadFile' }) 
   } catch (error) {
     showAutoClosePopup("Upload failed.")
     console.error(error)
@@ -61,6 +66,34 @@ async function handleUpload() {
     isUploading.value = false
   }
 }
+
+function pollTaskStatus(taskId: string) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await ExtractKey.getStatus(taskId)
+      const job = res.data
+
+      if (job.status === 'completed') {
+        clearInterval(interval)
+        isUploading.value = false
+        financialStore.setKeys(job.result) // สมมติว่า backend ใส่ result ตรงนี้
+        router.push({ name: 'tabularResult' })
+      } else if (job.status === 'error') {
+        clearInterval(interval)
+        isUploading.value = false
+        showAutoClosePopup(`Processing failed: ${job.message || ''}`)
+      } else {
+        console.log("Still processing...")
+      }
+    } catch (err) {
+      clearInterval(interval)
+      isUploading.value = false
+      showAutoClosePopup("Error polling status.")
+      console.error(err)
+    }
+  }, 2000)
+}
+
 
 function handleCancel() {
   router.push({ name: 'uploadFile' })
