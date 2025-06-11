@@ -13,5 +13,7 @@ export const useFinancialKeyStore = defineStore('financialKey', {
     setFileName(name: string) {
       this.fileName = name
     }
-  }
+  },
+  persist: true
 })
+
