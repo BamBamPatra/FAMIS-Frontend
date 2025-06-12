@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted , onUnmounted} from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
+import type { FinancialKey } from '@/type.ts'
 import ExtractKey from '@/service/ExtractKey.ts'
 import Popup from '@/components/PopupAlert.vue'
 
@@ -9,10 +10,13 @@ const router = useRouter()
 const route = useRoute()
 const financialStore = useFinancialKeyStore()
 
-const showPopup = ref(false)
-const popupMessage = ref('')
-const isSaving = ref(false)
-const pdfUrl = ref<string | null>(null)
+// UI state
+const showPopup     = ref(false)
+const popupMessage  = ref('')
+const isSaving      = ref(false)
+const isEditing     = ref(false)
+const editableKeys  = ref<FinancialKey[]>([])
+const pdfUrl        = ref<string | null>(null)
 
 const taskId = route.params.taskId as string | undefined
 
@@ -20,58 +24,41 @@ onMounted(async () => {
   try {
     if (!taskId) {
       showPopup.value = true
-      popupMessage.value = 'Not found Task ID'
+      popupMessage.value = 'Task ID not found'
       return
     }
-
+    // load filename from localStorage
     const notiTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
-    const taskInfo = notiTasks.find((t: any) => t.id === taskId)
-
+    const taskInfo  = notiTasks.find((t: any) => t.id === taskId)
     financialStore.setFileName(taskInfo?.name ?? `task_${taskId}.pdf`)
 
-    const response = await ExtractKey.getStatus(taskId)
-
-    if (response.data.status === 'error') {
+    // fetch status/result
+    const res = await ExtractKey.getStatus(taskId)
+    if (res.data.status === 'error') {
       showPopup.value = true
-      popupMessage.value = response.data.message || 'Error fetching data'
+      popupMessage.value = res.data.message || 'Error fetching data'
       return
     }
 
-    financialStore.setKeys(response.data.result)
+    financialStore.setKeys(res.data.result)
 
-    if (response.data.status === 'complete') {
-    const safeFilename = taskInfo?.name ?? `task_${taskId}.pdf`
-
-    // --- SET PDF BLOB ---
-    if (response.data.file_base64) {
-      const base64 = response.data.file_base64
-      const byteCharacters = atob(base64)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/pdf' })
-      pdfUrl.value = URL.createObjectURL(blob)
+    // optional base64 PDF preview
+    if (res.data.file_base64) {
+      const bin = atob(res.data.file_base64)
+      const arr = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+      pdfUrl.value = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }))
     }
+  } catch {
+    showPopup.value = true
+    popupMessage.value = 'Failed to load result'
+  }
+})
 
-    // localStorage handling
-    const existing = JSON.parse(localStorage.getItem('notiTasks') || '[]')
-    const alreadyExists = existing.some((t: any) => t.id === taskId)
-    if (!alreadyExists) {
-      existing.push({ id: taskId, name: safeFilename, timestamp: new Date().toISOString() })
-      localStorage.setItem('notiTasks', JSON.stringify(existing))
-    }}
-    } catch (error) {
-      showPopup.value = true
-      popupMessage.value = 'Failed to load result'
-    }
-  })
-
-  onUnmounted(() => {
-    if (pdfUrl.value && pdfUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(pdfUrl.value)
-    }
+onUnmounted(() => {
+  if (pdfUrl.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(pdfUrl.value)
+  }
 })
 
 function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
@@ -79,11 +66,32 @@ function showAutoClosePopup(message: string, duration = 1500, onClose?: () => vo
   showPopup.value = true
   setTimeout(() => {
     showPopup.value = false
-    if (onClose) onClose()
+    onClose?.()
   }, duration)
 }
 
+// --- Inline Edit Handlers ---
+function handleEditAll() {
+  editableKeys.value = JSON.parse(JSON.stringify(financialStore.financialKeys))
+  isEditing.value = true
+}
+
+function handleSaveEdits() {
+  financialStore.setKeys(editableKeys.value)
+  isEditing.value = false
+}
+
+function handleCancelEdits() {
+  editableKeys.value = []
+  isEditing.value = false
+}
+
+// --- Final Confirm (save to backend) ---
 async function handleSave() {
+  if (isEditing.value) {
+    handleSaveEdits()
+  }
+
   if (!financialStore.financialKeys.length) {
     showAutoClosePopup("No information to record.")
     return
@@ -92,59 +100,85 @@ async function handleSave() {
   isSaving.value = true
   try {
     const payload = {
-      user_id: '1', 
+      user_id: '1',
       filename: financialStore.fileName || 'unknown.pdf',
       image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`,
       structured_data: financialStore.financialKeys
     }
-
-    const response = await ExtractKey.saveKeys(payload)
-
-    if (response.data?.status === 'success') {
+    const res = await ExtractKey.saveKeys(payload)
+    if (res.data.status === 'success') {
       showAutoClosePopup("Successfully recorded!", 1500, () => {
         router.push({ name: 'uploadFile' })
       })
     } else {
-      alert('Error: ' + (response.data?.message || 'Unknown error'))
+      showAutoClosePopup("Error: " + (res.data.message || 'Unknown error'))
     }
   } catch (err: any) {
-    console.error('Save error:', err)
     const msg = err.response?.data?.message || 'Save failed'
     showAutoClosePopup("Fail to record: " + msg)
   } finally {
     isSaving.value = false
   }
 }
-
-function handleEditAll() {
-  alert('Edit all clicked!')
-  
-}
-
 </script>
 
 <template>
   <div class="container">
+    <!-- File Name & PDF Preview -->
     <div v-if="financialStore.fileName" class="file-name">
       {{ financialStore.fileName }}
     </div>
-
-    <!-- Preview PDF -->
     <div v-if="pdfUrl" class="pdf-preview">
       <embed :src="pdfUrl" type="application/pdf" width="800" height="600" />
     </div>
 
-
+    <!-- Table Header with Icon & Edit Controls -->
     <div class="table-header">
-    <h2>Financial Key</h2>
-    <button @click="handleEditAll" class="edit-all-btn" aria-label="Edit All">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 512 512">
-        <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3 11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2 37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7 253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5 5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4 6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32 0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3 67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3 22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3 18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144 144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z"/>
-      </svg>
-    </button>
-  </div>
+      <h2>Financial Key</h2>
+      <!-- Edit Icon -->
+      <button
+  v-if="!isEditing"
+  @click="handleEditAll"
+  class="edit-all-btn"
+  aria-label="Edit All"
+>
+  <svg xmlns="http://www.w3.org/2000/svg"
+       width="20" height="20"
+       fill="currentColor"
+       viewBox="0 0 512 512">
+    <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3
+             11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2
+             37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5
+             23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7
+             253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5
+             5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4
+             6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32
+             0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3
+             67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3
+             22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3
+             18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144
+             144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144
+             c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z"/>
+        </svg>
+      </button>
+      <!-- Save Edits & Cancel Buttons -->
+      <button
+        v-if="isEditing"
+        @click="handleSaveEdits"
+        class="confirm-btn"
+      >
+        SAVE EDITS
+      </button>
+      <button
+        v-if="isEditing"
+        @click="handleCancelEdits"
+        class="cancel-btn"
+      >
+        CANCEL
+      </button>
+    </div>
 
-    <!-- Table Result -->
+    <!-- Editable Table -->
     <table class="bill-table">
       <thead>
         <tr>
@@ -158,33 +192,70 @@ function handleEditAll() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in financialStore.financialKeys" :key="item.id || item.bill_number || item.page">
-          <td>{{ item.document_type }}</td>
-          <td>{{ item.bill_number || '-' }}</td>
-          <td>{{ item.supplier_name }}</td>
-          <td>{{ item.payment_date }}</td>
-          <td>{{ item.amount }}</td>
-          <td>{{ item.signature }}</td>
+        <tr
+          v-for="(item, idx) in (isEditing ? editableKeys : financialStore.financialKeys)"
+          :key="item.page"
+        >
+          <!-- Document type -->
+          <td>
+            <template v-if="!isEditing">{{ item.document_type }}</template>
+            <template v-else>
+              <input v-model="editableKeys[idx].document_type" />
+            </template>
+          </td>
+          <!-- Invoice number -->
+          <td>
+            <template v-if="!isEditing">{{ item.bill_number || '-' }}</template>
+            <template v-else>
+              <input v-model="editableKeys[idx].bill_number" />
+            </template>
+          </td>
+          <!-- Supplier Name -->
+          <td>
+            <template v-if="!isEditing">{{ item.supplier_name }}</template>
+            <template v-else>
+              <input v-model="editableKeys[idx].supplier_name" />
+            </template>
+          </td>
+          <!-- Date -->
+          <td>
+            <template v-if="!isEditing">{{ item.payment_date }}</template>
+            <template v-else>
+              <input v-model="editableKeys[idx].payment_date" />
+            </template>
+          </td>
+          <!-- Amount -->
+          <td>
+            <template v-if="!isEditing">{{ item.amount }}</template>
+            <template v-else>
+              <input type="number" v-model.number="editableKeys[idx].amount" />
+            </template>
+          </td>
+          <!-- Signature -->
+          <td>
+            <template v-if="!isEditing">{{ item.signature }}</template>
+            <template v-else>
+              <input v-model="editableKeys[idx].signature" />
+            </template>
+          </td>
+          <!-- Page (read-only) -->
           <td>{{ item.page }}</td>
         </tr>
       </tbody>
     </table>
 
-    
+    <!-- Final Confirm to Backend -->
     <div class="footer-btn">
-      <!-- Cancle Button -->
       <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">
         CANCEL
       </button>
-      <!-- Confirm Button -->
       <button class="confirm-btn" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
     </div>
 
-    <!-- Popup ALert -->
+    <!-- Popup Alert -->
     <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
-    
   </div>
 </template>
 
