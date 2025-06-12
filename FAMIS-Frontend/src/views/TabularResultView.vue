@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted , onUnmounted} from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import ExtractKey from '@/service/ExtractKey.ts'
@@ -12,6 +12,7 @@ const financialStore = useFinancialKeyStore()
 const showPopup = ref(false)
 const popupMessage = ref('')
 const isSaving = ref(false)
+const pdfUrl = ref<string | null>(null)
 
 const taskId = route.params.taskId as string | undefined
 
@@ -19,11 +20,16 @@ onMounted(async () => {
   try {
     if (!taskId) {
       showPopup.value = true
-      popupMessage.value = 'ไม่พบ Task ID ใน URL'
+      popupMessage.value = 'Not found Task ID'
       return
     }
+
+    const notiTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
+    const taskInfo = notiTasks.find((t: any) => t.id === taskId)
+
+    financialStore.setFileName(taskInfo?.name ?? `task_${taskId}.pdf`)
+
     const response = await ExtractKey.getStatus(taskId)
-    console.log('Fetched result:', response.data)
 
     if (response.data.status === 'error') {
       showPopup.value = true
@@ -31,13 +37,41 @@ onMounted(async () => {
       return
     }
 
-    financialStore.setKeys(response.data.result) // ถ้า backend ส่ง field result จริง ๆ
-    financialStore.setFileName(`task_${taskId}.pdf`)
-  } catch (error) {
-    console.error('Failed to load task result:', error)
-    showPopup.value = true
-    popupMessage.value = 'Failed to load result'
-  }
+    financialStore.setKeys(response.data.result)
+
+    if (response.data.status === 'complete') {
+    const safeFilename = taskInfo?.name ?? `task_${taskId}.pdf`
+
+    // --- SET PDF BLOB ---
+    if (response.data.file_base64) {
+      const base64 = response.data.file_base64
+      const byteCharacters = atob(base64)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: 'application/pdf' })
+      pdfUrl.value = URL.createObjectURL(blob)
+    }
+
+    // localStorage handling
+    const existing = JSON.parse(localStorage.getItem('notiTasks') || '[]')
+    const alreadyExists = existing.some((t: any) => t.id === taskId)
+    if (!alreadyExists) {
+      existing.push({ id: taskId, name: safeFilename, timestamp: new Date().toISOString() })
+      localStorage.setItem('notiTasks', JSON.stringify(existing))
+    }}
+    } catch (error) {
+      showPopup.value = true
+      popupMessage.value = 'Failed to load result'
+    }
+  })
+
+  onUnmounted(() => {
+    if (pdfUrl.value && pdfUrl.value.startsWith('blob:')) {
+      URL.revokeObjectURL(pdfUrl.value)
+    }
 })
 
 function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
@@ -81,6 +115,12 @@ async function handleSave() {
     isSaving.value = false
   }
 }
+
+function handleEditAll() {
+  alert('Edit all clicked!')
+  
+}
+
 </script>
 
 <template>
@@ -88,6 +128,21 @@ async function handleSave() {
     <div v-if="financialStore.fileName" class="file-name">
       {{ financialStore.fileName }}
     </div>
+
+    <!-- Preview PDF -->
+    <div v-if="pdfUrl" class="pdf-preview">
+      <embed :src="pdfUrl" type="application/pdf" width="800" height="600" />
+    </div>
+
+
+    <div class="table-header">
+    <h2>Financial Key</h2>
+    <button @click="handleEditAll" class="edit-all-btn" aria-label="Edit All">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 512 512">
+        <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3 11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2 37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7 253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5 5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4 6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32 0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3 67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3 22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3 18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144 144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z"/>
+      </svg>
+    </button>
+  </div>
 
     <!-- Table Result -->
     <table class="bill-table">
@@ -115,17 +170,14 @@ async function handleSave() {
       </tbody>
     </table>
 
-    <!-- Cancle Button -->
+    
     <div class="footer-btn">
+      <!-- Cancle Button -->
       <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">
         CANCEL
       </button>
-
-      <button
-        class="confirm-btn"
-        @click="handleSave"
-        :disabled="isSaving"
-      >
+      <!-- Confirm Button -->
+      <button class="confirm-btn" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
     </div>
@@ -145,6 +197,9 @@ async function handleSave() {
   margin: 0 auto;
   min-height: 90vh;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .file-header {
@@ -162,6 +217,7 @@ async function handleSave() {
   font-size: 1.25rem;
   border-radius: 10px;
   font-weight: bold;
+  width: 100%;
 }
 
 .close-btn {
@@ -188,7 +244,6 @@ async function handleSave() {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: 30px;
   margin-bottom: 30px;
 }
 
@@ -232,6 +287,8 @@ async function handleSave() {
 .footer-btn {
   display: flex;
   justify-content: flex-end;
+  width: 100%;
+  gap: 16px; 
 }
 
 /* Confirm Button */
@@ -266,7 +323,6 @@ async function handleSave() {
 .cancel-btn:hover {
   background-color: #bbb;
 }
-
 
 /* Popup alert */
 .popup {
@@ -304,4 +360,48 @@ async function handleSave() {
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* Preview file */
+.pdf-preview {
+  margin-top: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 800px;  
+  height: 600px; 
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.pdf-preview embed {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 960px;
+}
+
+/* Edit icon */
+.edit-all-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #582c6d;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.edit-all-btn:hover {
+  color: #a675c6;
+}
+
 </style>
