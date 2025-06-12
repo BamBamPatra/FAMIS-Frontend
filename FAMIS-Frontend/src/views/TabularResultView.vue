@@ -20,6 +20,18 @@ const pdfUrl        = ref<string | null>(null)
 
 const taskId = route.params.taskId as string | undefined
 
+// รายการประเภทเอกสารสำหรับ dropdown
+const documentTypes = [
+  'ใบตั้งหนี้',
+  'ใบส่งของ/ใบกำกับภาษี',
+  'เอกสารการขออนุมัติ',
+  'สัญญาจ้าง',
+  'เอกสารการโอนสิทธิ์',
+  'ใบแจ้งหนี้',
+  'ใบเสร็จรับเงิน/หลักฐานการจ่ายเงิน',
+  'Unknown'
+]
+
 onMounted(async () => {
   try {
     if (!taskId) {
@@ -91,12 +103,10 @@ async function handleSave() {
   if (isEditing.value) {
     handleSaveEdits()
   }
-
   if (!financialStore.financialKeys.length) {
     showAutoClosePopup("No information to record.")
     return
   }
-
   isSaving.value = true
   try {
     const payload = {
@@ -132,53 +142,45 @@ async function handleSave() {
       <embed :src="pdfUrl" type="application/pdf" width="800" height="600" />
     </div>
 
-    <!-- Table Header with Icon & Edit Controls -->
+    <!-- Table Header with Edit Controls -->
     <div class="table-header">
       <h2>Financial Key</h2>
-      <!-- Edit Icon -->
       <button
-  v-if="!isEditing"
-  @click="handleEditAll"
-  class="edit-all-btn"
-  aria-label="Edit All"
->
-  <svg xmlns="http://www.w3.org/2000/svg"
-       width="20" height="20"
-       fill="currentColor"
-       viewBox="0 0 512 512">
-    <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3
-             11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2
-             37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5
-             23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7
-             253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5
-             5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4
-             6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32
-             0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3
-             67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3
-             22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3
-             18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144
-             144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144
-             c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z"/>
+        v-if="!isEditing"
+        @click="handleEditAll"
+        class="edit-all-btn"
+        aria-label="Edit All"
+      >
+        <!-- pencil icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 512 512">
+          <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3
+                   11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2
+                   37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5
+                   23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7
+                   253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5
+                   5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4
+                   6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32
+                   0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3
+                   67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3
+                   22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3
+                   18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144
+                   144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144
+                   c6.2 6.2 16.4 6.2 22.6 0s6.2 16.4 0 22.6z"/>
         </svg>
       </button>
-      <!-- Save Edits & Cancel Buttons -->
       <button
         v-if="isEditing"
         @click="handleSaveEdits"
         class="confirm-btn"
-      >
-        SAVE EDITS
-      </button>
+      >SAVE EDITS</button>
       <button
         v-if="isEditing"
         @click="handleCancelEdits"
         class="cancel-btn"
-      >
-        CANCEL
-      </button>
+      >CANCEL</button>
     </div>
 
-    <!-- Editable Table -->
+    <!-- Editable Table with Dropdown for Document Type -->
     <table class="bill-table">
       <thead>
         <tr>
@@ -196,49 +198,46 @@ async function handleSave() {
           v-for="(item, idx) in (isEditing ? editableKeys : financialStore.financialKeys)"
           :key="item.page"
         >
-          <!-- Document type -->
+          <!-- Document type as dropdown in edit mode -->
           <td>
-            <template v-if="!isEditing">{{ item.document_type }}</template>
+            <template v-if="!isEditing">
+              {{ item.document_type }}
+            </template>
             <template v-else>
-              <input v-model="editableKeys[idx].document_type" />
+              <select
+                v-model="editableKeys[idx].document_type"
+                class="doc-type-select"
+              >
+                <option
+                  v-for="type in documentTypes"
+                  :key="type"
+                  :value="type"
+                >
+                  {{ type }}
+                </option>
+              </select>
             </template>
           </td>
-          <!-- Invoice number -->
           <td>
             <template v-if="!isEditing">{{ item.bill_number || '-' }}</template>
-            <template v-else>
-              <input v-model="editableKeys[idx].bill_number" />
-            </template>
+            <template v-else><input v-model="editableKeys[idx].bill_number" /></template>
           </td>
-          <!-- Supplier Name -->
           <td>
             <template v-if="!isEditing">{{ item.supplier_name }}</template>
-            <template v-else>
-              <input v-model="editableKeys[idx].supplier_name" />
-            </template>
+            <template v-else><input v-model="editableKeys[idx].supplier_name" /></template>
           </td>
-          <!-- Date -->
           <td>
             <template v-if="!isEditing">{{ item.payment_date }}</template>
-            <template v-else>
-              <input v-model="editableKeys[idx].payment_date" />
-            </template>
+            <template v-else><input v-model="editableKeys[idx].payment_date" /></template>
           </td>
-          <!-- Amount -->
           <td>
             <template v-if="!isEditing">{{ item.amount }}</template>
-            <template v-else>
-              <input type="number" v-model.number="editableKeys[idx].amount" />
-            </template>
+            <template v-else><input type="number" v-model.number="editableKeys[idx].amount" /></template>
           </td>
-          <!-- Signature -->
           <td>
             <template v-if="!isEditing">{{ item.signature }}</template>
-            <template v-else>
-              <input v-model="editableKeys[idx].signature" />
-            </template>
+            <template v-else><input v-model="editableKeys[idx].signature" /></template>
           </td>
-          <!-- Page (read-only) -->
           <td>{{ item.page }}</td>
         </tr>
       </tbody>
@@ -258,6 +257,7 @@ async function handleSave() {
     <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
   </div>
 </template>
+
 
 <style scoped>
 .container {
@@ -475,4 +475,11 @@ async function handleSave() {
   color: #a675c6;
 }
 
+.doc-type-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
 </style>
