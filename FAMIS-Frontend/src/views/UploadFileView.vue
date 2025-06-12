@@ -121,7 +121,7 @@ function selectFile(file: File) {
 /* Drop Zone Style */
 .drop-zone {
   width: 800px;
-  height: 300px;
+  height: 400px;
   background-color: #d9d9d9;
   border-radius: 24px;
   display: flex;

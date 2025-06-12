@@ -6,12 +6,13 @@ const router = useRouter()
 function goToNotification() {
   const notiTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
   if (notiTasks.length === 0) {
-    alert('ไม่มีการแจ้งเตือน')
+    alert('No notifification')
     return
   }
 
-  const latestTask = notiTasks[notiTasks.length - 1] // เอา task ล่าสุด
-  router.push({ name: 'noticeBoard', query: { taskId: latestTask.id } })
+  const latestTask = notiTasks[notiTasks.length - 1] 
+  router.push({ name: 'noticeBoard', params: { taskId: latestTask.id } })
+
 }
 </script>
 
@@ -37,13 +38,13 @@ function goToNotification() {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding-right: 30px; 
+  padding-right: 60px; 
   padding-top: 20px;
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 35px;
+  height: 35px;
   fill: #333;
   cursor: pointer;
   transition: transform 0.2s ease;

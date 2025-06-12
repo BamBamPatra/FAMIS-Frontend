@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import ExtractKey from '@/service/ExtractKey.ts'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import Popup from '@/components/PopupAlert.vue'
+import { useNotificationStore } from '@/stores/notificationStore'
 
 const financialStore = useFinancialKeyStore()
 const route = useRoute()
@@ -17,6 +18,8 @@ const file = ref<File | null>(null)
 const showPopup = ref(false)
 const popupMessage = ref('')
 
+const notificationStore = useNotificationStore()
+
 function showAutoClosePopup(message: string, duration = 1500) {
   popupMessage.value = message
   showPopup.value = true
@@ -28,18 +31,22 @@ function showAutoClosePopup(message: string, duration = 1500) {
 onMounted(() => {
   const fileUrl = route.query.fileUrl as string | null
   const fileName = route.query.fileName as string | null
+  console.log('fileName from route:', fileName)
 
-  if (fileUrl) pdfUrl.value = fileUrl
   if (fileName) {
     selectedFileName.value = fileName
+    console.log('selectedFileName set to:', selectedFileName.value)
     financialStore.setFileName(fileName)
   }
 
+  if (fileUrl) pdfUrl.value = fileUrl
+
   file.value = (window as any).myFile || null
   if (!file.value) 
-  showAutoClosePopup("No file data found to upload.")
+    showAutoClosePopup("No file data found to upload.")
   return
 })
+
 
 async function handleUpload() {
   if (!file.value) {
@@ -52,8 +59,8 @@ async function handleUpload() {
     const response = await ExtractKey.processFile(file.value)
     const taskId = response.data.task_id
 
-    // 🔥 บันทึก taskId ลงระบบ noti (เช่น localStorage หรือ Pinia)
-    // ตัวอย่าง: สมมติเราใช้ localStorage
+    notificationStore.startPolling(taskId, selectedFileName.value || undefined)
+
     const oldTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
     const newTask = { id: taskId, name: selectedFileName.value, status: 'processing' }
     localStorage.setItem('notiTasks', JSON.stringify([...oldTasks, newTask]))
@@ -76,7 +83,7 @@ function pollTaskStatus(taskId: string) {
       if (job.status === 'completed') {
         clearInterval(interval)
         isUploading.value = false
-        financialStore.setKeys(job.result) // สมมติว่า backend ใส่ result ตรงนี้
+        financialStore.setKeys(job.result) 
         router.push({ name: 'tabularResult' })
       } else if (job.status === 'error') {
         clearInterval(interval)
@@ -145,6 +152,7 @@ function handleCancel() {
   flex-direction: column;
   align-items: center;
   gap: 20px;
+  margin-top: 40px;
 }
 
 .file-name {

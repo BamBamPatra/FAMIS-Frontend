@@ -23,7 +23,7 @@ const router = createRouter({
       component: TabularResultView
     },
     {
-      path: '/noticeBoard',
+      path: '/noticeBoard/:taskId',
       name: 'noticeBoard',
       component: NoticeBoardView,
     }

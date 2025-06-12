@@ -1,6 +1,34 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import Notification from '@/components/Notification.vue'
+import Notification from '@/components/NotificationIcon.vue'
+import { useToastStore } from '@/stores/popupStore.ts'
+const toastStore = useToastStore()
+import { useNotificationStore } from '@/stores/notificationStore.ts'
+import { watchEffect } from 'vue'
+
+const notificationStore = useNotificationStore()
+const successSound = new Audio('/notify.mp3')
+const shownTasks = new Set<string>()
+
+watchEffect(() => {
+  const lastNoti = notificationStore.notifications.at(-1)
+  if (!lastNoti || shownTasks.has(lastNoti.taskId || '')) return
+
+  if (lastNoti.status !== 'processing') {
+    shownTasks.add(lastNoti.taskId || '')
+    const toastType = lastNoti.status === 'complete' ? 'success' : 'error'
+    toastStore.trigger(lastNoti.message, toastType)
+
+    if (lastNoti.status === 'complete') {
+      successSound.currentTime = 0
+      successSound.play().catch((err) => {
+        console.warn('Sound play failed:', err)
+      })
+    }
+  }
+})
+
+
 </script>
 
 <template>
@@ -29,6 +57,11 @@ import Notification from '@/components/Notification.vue'
       </div>
       <RouterView />
     </div>
+
+    <div v-if="toastStore.show" class="toast" :class="toastStore.type">
+      {{ toastStore.message }}
+    </div>
+
   </div>
 </template>
 
@@ -83,6 +116,30 @@ import Notification from '@/components/Notification.vue'
 .icon {
   width: 2em;
   height: 2em;
+}
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  color: white;
+  z-index: 9999;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  animation: fadeInOut 3s ease forwards;
+}
+
+.success { background-color: #4BB543; }
+.error { background-color: #E74C3C; }
+.info { background-color: #3498DB; }
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 
 </style>
