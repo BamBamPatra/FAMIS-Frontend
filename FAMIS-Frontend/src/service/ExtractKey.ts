@@ -27,6 +27,8 @@ export default {
   },
   getStatus(taskId: string) {
   return apiClient.get(`/status/${taskId}`)
+  },
+  getDocTypes() {
+  return apiClient.get('/doc-types')
   }
-
 };

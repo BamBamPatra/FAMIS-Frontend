@@ -2,49 +2,39 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
-import type { FinancialKey } from '@/type.ts'
-import ExtractKey from '@/service/ExtractKey.ts'
+import type { FinancialKey } from '@/type'
+import ExtractKey from '@/service/ExtractKey'
 import Popup from '@/components/PopupAlert.vue'
 
 const router = useRouter()
 const route = useRoute()
 const financialStore = useFinancialKeyStore()
 
-// UI state
-const showPopup     = ref(false)
-const popupMessage  = ref('')
-const isSaving      = ref(false)
-const isEditing     = ref(false)
-const editableKeys  = ref<FinancialKey[]>([])
-const pdfUrl        = ref<string | null>(null)
+const showPopup = ref(false)
+const popupMessage = ref('')
+const isSaving = ref(false)
+const isEditing = ref(false)
+const editableKeys = ref<FinancialKey[]>([])
+const pdfUrl = ref<string | null>(null)
 
 const taskId = route.params.taskId as string | undefined
-
-// รายการประเภทเอกสารสำหรับ dropdown
-const documentTypes = [
-  'ใบตั้งหนี้',
-  'ใบส่งของ/ใบกำกับภาษี',
-  'เอกสารการขออนุมัติ',
-  'สัญญาจ้าง',
-  'เอกสารการโอนสิทธิ์',
-  'ใบแจ้งหนี้',
-  'ใบเสร็จรับเงิน/หลักฐานการจ่ายเงิน',
-  'Unknown'
-]
+const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
 
 onMounted(async () => {
+  isEditing.value = false // reset edit state
   try {
     if (!taskId) {
       showPopup.value = true
       popupMessage.value = 'Task ID not found'
       return
     }
-    // load filename from localStorage
+
+    await fetchDocTypes()
+
     const notiTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
-    const taskInfo  = notiTasks.find((t: any) => t.id === taskId)
+    const taskInfo = notiTasks.find((t: any) => t.id === taskId)
     financialStore.setFileName(taskInfo?.name ?? `task_${taskId}.pdf`)
 
-    // fetch status/result
     const res = await ExtractKey.getStatus(taskId)
     if (res.data.status === 'error') {
       showPopup.value = true
@@ -54,7 +44,6 @@ onMounted(async () => {
 
     financialStore.setKeys(res.data.result)
 
-    // optional base64 PDF preview
     if (res.data.file_base64) {
       const bin = atob(res.data.file_base64)
       const arr = new Uint8Array(bin.length)
@@ -73,16 +62,17 @@ onUnmounted(() => {
   }
 })
 
-function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
-  popupMessage.value = message
-  showPopup.value = true
-  setTimeout(() => {
-    showPopup.value = false
-    onClose?.()
-  }, duration)
+async function fetchDocTypes() {
+  try {
+    const res = await ExtractKey.getDocTypes()
+    if (res.data.status === 'success') {
+      docTypeOptions.value = res.data.doc_types
+    }
+  } catch {
+    docTypeOptions.value = []
+  }
 }
 
-// --- Inline Edit Handlers ---
 function handleEditAll() {
   editableKeys.value = JSON.parse(JSON.stringify(financialStore.financialKeys))
   isEditing.value = true
@@ -98,7 +88,15 @@ function handleCancelEdits() {
   isEditing.value = false
 }
 
-// --- Final Confirm (save to backend) ---
+function showAutoClosePopup(message: string, duration = 1500, onClose?: () => void) {
+  popupMessage.value = message
+  showPopup.value = true
+  setTimeout(() => {
+    showPopup.value = false
+    onClose?.()
+  }, duration)
+}
+
 async function handleSave() {
   if (isEditing.value) {
     handleSaveEdits()
@@ -135,9 +133,7 @@ async function handleSave() {
 <template>
   <div class="container">
     <!-- File Name & PDF Preview -->
-    <div v-if="financialStore.fileName" class="file-name">
-      {{ financialStore.fileName }}
-    </div>
+    <div v-if="financialStore.fileName" class="file-name">{{ financialStore.fileName }}</div>
     <div v-if="pdfUrl" class="pdf-preview">
       <embed :src="pdfUrl" type="application/pdf" width="800" height="600" />
     </div>
@@ -145,42 +141,12 @@ async function handleSave() {
     <!-- Table Header with Edit Controls -->
     <div class="table-header">
       <h2>Financial Key</h2>
-      <button
-        v-if="!isEditing"
-        @click="handleEditAll"
-        class="edit-all-btn"
-        aria-label="Edit All"
-      >
-        <!-- pencil icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 512 512">
-          <path d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3
-                   11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2
-                   37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5
-                   23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7
-                   253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5
-                   5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4
-                   6.9-13.3l22.7-9.1 0 32c0 8.8 7.2 16 16 16l32
-                   0zM362.7 18.7L348.3 33.2 325.7 55.8 314.3
-                   67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3
-                   22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3
-                   18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144
-                   144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144
-                   c6.2 6.2 16.4 6.2 22.6 0s6.2 16.4 0 22.6z"/>
-        </svg>
-      </button>
-      <button
-        v-if="isEditing"
-        @click="handleSaveEdits"
-        class="confirm-btn"
-      >SAVE EDITS</button>
-      <button
-        v-if="isEditing"
-        @click="handleCancelEdits"
-        class="cancel-btn"
-      >CANCEL</button>
+      <button type="button" v-if="!isEditing" @click="handleEditAll" class="edit-all-btn">✏️</button>
+      <button type="button" v-if="isEditing" @click="handleSaveEdits" class="confirm-btn">SAVE EDITS</button>
+      <button type="button" v-if="isEditing" @click="handleCancelEdits" class="cancel-btn">CANCEL</button>
     </div>
 
-    <!-- Editable Table with Dropdown for Document Type -->
+    <!-- Table -->
     <table class="bill-table">
       <thead>
         <tr>
@@ -194,26 +160,15 @@ async function handleSave() {
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="(item, idx) in (isEditing ? editableKeys : financialStore.financialKeys)"
-          :key="item.page"
-        >
-          <!-- Document type as dropdown in edit mode -->
+        <tr v-for="(item, idx) in (isEditing ? editableKeys : financialStore.financialKeys)" :key="item.page">
           <td>
             <template v-if="!isEditing">
               {{ item.document_type }}
             </template>
             <template v-else>
-              <select
-                v-model="editableKeys[idx].document_type"
-                class="doc-type-select"
-              >
-                <option
-                  v-for="type in documentTypes"
-                  :key="type"
-                  :value="type"
-                >
-                  {{ type }}
+              <select v-model="editableKeys[idx].document_type" class="doc-type-select">
+                <option v-for="opt in docTypeOptions" :key="opt.DocTypeID" :value="opt.DocTypeName">
+                  {{ opt.DocTypeName }}
                 </option>
               </select>
             </template>
@@ -243,21 +198,18 @@ async function handleSave() {
       </tbody>
     </table>
 
-    <!-- Final Confirm to Backend -->
+    <!-- Final Buttons -->
     <div class="footer-btn">
-      <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">
-        CANCEL
-      </button>
+      <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">CANCEL</button>
       <button class="confirm-btn" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
     </div>
 
-    <!-- Popup Alert -->
+    <!-- Popup -->
     <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
   </div>
 </template>
-
 
 <style scoped>
 .container {
@@ -359,7 +311,7 @@ async function handleSave() {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  gap: 16px; 
+  gap: 16px;
 }
 
 /* Confirm Button */
@@ -442,9 +394,9 @@ async function handleSave() {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 800px;  
-  height: 600px; 
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  width: 800px;
+  height: 600px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .pdf-preview embed {
