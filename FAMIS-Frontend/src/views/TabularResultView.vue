@@ -5,6 +5,9 @@ import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import type { FinancialKey } from '@/type'
 import ExtractKey from '@/service/ExtractKey'
 import Popup from '@/components/PopupAlert.vue'
+import { useTaskBoardStore } from '@/stores/taskBoardStore'
+const taskStore = useTaskBoardStore()
+
 
 const router = useRouter()
 const route = useRoute()
@@ -19,6 +22,20 @@ const pdfUrl = ref<string | null>(null)
 
 const taskId = route.params.taskId as string | undefined
 const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
+
+
+
+const documentTypes = [
+  'ใบตั้งหนี้',
+  'ใบส่งของ/ใบกำกับภาษี',
+  'เอกสารการขออนุมัติ',
+  'สัญญาจ้าง',
+  'เอกสารการโอนสิทธิ์',
+  'ใบแจ้งหนี้',
+  'ใบเสร็จรับเงิน/หลักฐานการจ่ายเงิน',
+  'Unknown'
+]
+
 
 onMounted(async () => {
   isEditing.value = false // reset edit state
@@ -106,6 +123,7 @@ async function handleSave() {
     return
   }
   isSaving.value = true
+  
   try {
     const payload = {
       user_id: '1',
@@ -115,10 +133,13 @@ async function handleSave() {
     }
     const res = await ExtractKey.saveKeys(payload)
     if (res.data.status === 'success') {
-      showAutoClosePopup("Successfully recorded!", 1500, () => {
-        router.push({ name: 'uploadFile' })
-      })
-    } else {
+    if (taskId) {
+      taskStore.removeTask(taskId) 
+    }
+    showAutoClosePopup("Successfully recorded!", 1500, () => {
+      router.push({ name: 'uploadFile' })
+    })
+    }else {
       showAutoClosePopup("Error: " + (res.data.message || 'Unknown error'))
     }
   } catch (err: any) {

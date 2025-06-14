@@ -3,6 +3,7 @@ import UploadFile from '@/views/UploadFileView.vue'
 import PreviewFile from '@/views/PreviewFileView.vue'
 import TabularResultView from '@/views/TabularResultView.vue'
 import NoticeBoardView from '@/views/NoticeBoardView.vue'
+import TaskBoardView from '@/views/TaskBoardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: '/noticeBoard/:taskId',
       name: 'noticeBoard',
       component: NoticeBoardView,
+    },
+    {
+      path: '/taskBoard',
+      name: 'taskBoard',
+      component: TaskBoardView,
     }
 
   ],

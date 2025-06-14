@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useTaskBoardStore } from '@/stores/taskboardStore'
 
 export const useNotificationStore = defineStore('notification', {
   state: () => ({
@@ -71,6 +72,12 @@ export const useNotificationStore = defineStore('notification', {
                     }),
                     taskId,
                 })
+                if (job.status === 'complete') {
+                    const taskBoardStore = useTaskBoardStore()
+                    taskBoardStore.addTaskId(taskId)
+                    await taskBoardStore.fetchCompletedTasks()  
+                }
+
             }
 
             this.stopPolling()
