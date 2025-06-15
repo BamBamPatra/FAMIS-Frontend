@@ -19,26 +19,14 @@ const isSaving = ref(false)
 const isEditing = ref(false)
 const editableKeys = ref<FinancialKey[]>([])
 const pdfUrl = ref<string | null>(null)
+const showConfirmCancelPopup = ref(false)
 
 const taskId = route.params.taskId as string | undefined
 const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
 
 
-
-const documentTypes = [
-  'ใบตั้งหนี้',
-  'ใบส่งของ/ใบกำกับภาษี',
-  'เอกสารการขออนุมัติ',
-  'สัญญาจ้าง',
-  'เอกสารการโอนสิทธิ์',
-  'ใบแจ้งหนี้',
-  'ใบเสร็จรับเงิน/หลักฐานการจ่ายเงิน',
-  'Unknown'
-]
-
-
 onMounted(async () => {
-  isEditing.value = false // reset edit state
+  isEditing.value = false 
   try {
     if (!taskId) {
       showPopup.value = true
@@ -149,6 +137,20 @@ async function handleSave() {
     isSaving.value = false
   }
 }
+
+function confirmDiscard() {
+  financialStore.setKeys([]);
+  showConfirmCancelPopup.value = false;
+
+  if (taskId) {
+    taskStore.removeTask(taskId); 
+  }
+
+  showAutoClosePopup("Successfully canceled extract key of this document.", 1500, () => {
+    router.push({ name: 'uploadFile' }); 
+  });
+}
+
 </script>
 
 <template>
@@ -180,8 +182,11 @@ async function handleSave() {
              c6.2 6.2 16.4 6.2 22.6 0s6.2 16.4 0 22.6z" />
         </svg>
       </button>
-      <button type="button" v-if="isEditing" @click="handleSaveEdits" class="confirm-btn">SAVE EDITS</button>
-      <button type="button" v-if="isEditing" @click="handleCancelEdits" class="cancel-btn">CANCEL</button>
+      <div class="edit-buttons" v-if="isEditing">
+        <button @click="handleCancelEdits" class="cancel-btn">CANCEL EDIT</button>
+        <button @click="handleSaveEdits" class="confirm-btn">CONFIRM EDIT</button>
+      </div>
+
     </div>
 
     <!-- Table -->
@@ -237,8 +242,8 @@ async function handleSave() {
     </table>
 
     <!-- Final Buttons -->
-    <div class="footer-btn">
-      <button class="cancel-btn" @click="router.push({ name: 'uploadFile' })">CANCEL</button>
+    <div class="footer-btn" v-if="!isEditing">
+      <button class="cancel-btn" @click="showConfirmCancelPopup = true">CANCEL</button>
       <button class="confirm-btn" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
@@ -246,7 +251,22 @@ async function handleSave() {
 
     <!-- Popup -->
     <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
+
+    <Popup v-if="showConfirmCancelPopup" :show="true" @close="showConfirmCancelPopup = false">
+      <template #default>
+        <div class="popup-header">
+          <button class="popup-close" @click="showConfirmCancelPopup = false">×</button>
+        </div>
+        <p>Are you sure to discard the data?</p>
+        <div class="popup-actions">
+          <button class="confirm-btn" @click="confirmDiscard">Confirm Cancel</button>
+        </div>
+      </template>
+    </Popup>
+
   </div>
+
+
 </template>
 
 <style scoped>
@@ -449,6 +469,7 @@ async function handleSave() {
   align-items: center;
   width: 100%;
   max-width: 960px;
+  margin-top: 30px;
 }
 
 /* Edit icon */
@@ -472,4 +493,123 @@ async function handleSave() {
   border: 1px solid #ccc;
   font-size: 14px;
 }
+
+.edit-buttons {
+  display: flex;
+  justify-content: flex-end;  
+  gap: 1rem;                  
+  margin-bottom: 1rem;        
+}
+
+.generic-popup-content {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.generic-popup-content p {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.generic-popup-content button {
+  background-color: #4b255f;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.generic-popup-content button:hover {
+  background-color: #3a1e4a;
+}
+
+/* Popup confirm cancel */
+.confirmation-popup-content {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.popup-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: end; 
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 28px; 
+  color: #999;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1; 
+  transition: color 0.2s ease;
+}
+
+.popup-close:hover {
+  color: #555;
+}
+
+.popup-message { 
+  font-size: 18px;
+  margin-bottom: 25px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: center; 
+  gap: 15px; 
+  margin-top: 20px;
+}
+
+.popup-actions .confirm-btn {
+  background-color: #a675c6; 
+  color: white;
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.popup-actions .confirm-btn:hover {
+  background-color: #8c5ba8; 
+}
+
+.popup-actions .cancel-btn {
+  background-color: #CD3F41; 
+  color: white; 
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.popup-actions .cancel-btn:hover {
+  background-color: #b53638; 
+}
+
 </style>

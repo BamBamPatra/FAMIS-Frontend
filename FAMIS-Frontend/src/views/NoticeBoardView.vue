@@ -16,13 +16,6 @@ onMounted(() => {
     notificationStore.startPolling(taskId)
   }
 })
-
-function goToResult(taskId?: string) {
-  if (taskId) {
-    router.push({ name: 'tabularResult', params: { taskId } })
-  }
-}
-
 </script>
 
 <template>
@@ -34,8 +27,6 @@ function goToResult(taskId?: string) {
         :status="noti.status"
         :message="noti.message"
         :time="noti.timestamp"
-        :clickable="noti.status === 'complete'"
-        @click="() => goToResult(noti.taskId)"
         />
 
       <hr v-if="notifications.length > 1" />

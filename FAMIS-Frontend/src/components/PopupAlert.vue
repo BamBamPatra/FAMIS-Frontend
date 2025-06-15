@@ -1,23 +1,20 @@
 <script setup lang="ts">
 defineProps<{
-  show: boolean
-  message: string
-}>()
+  show: boolean;
+  message: string; // Add message to props
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+  (e: 'close'): void;
+}>();
 
-const close = () => {
-  emit('close')
-}
+
 </script>
 
 <template>
   <div v-if="show" class="popup">
     <div class="popup-content">
-      <p>{{ message }}</p>
-    </div>
+      <p class="popup-message">{{ message }}</p> <slot /> </div>
   </div>
 </template>
 
@@ -39,22 +36,35 @@ const close = () => {
   background: white;
   padding: 24px 32px;
   border-radius: 12px;
-  text-align: center;
   max-width: 500px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
 }
 
-.popup-content p {
+.popup-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.popup-close:hover {
+  color: #555;
+}
+
+.popup-message {
   font-size: 18px;
   margin-bottom: 20px;
-}
-
-.popup-content button {
-  background-color: #4b255f;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  font-size: 14px;
-  border-radius: 6px;
-  cursor: pointer;
+  color: #333;
 }
 </style>

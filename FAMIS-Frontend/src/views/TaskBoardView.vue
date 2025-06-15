@@ -28,21 +28,28 @@ async function confirmTask(task: any) {
 function goToResult(task: any) {
   router.push({ name: 'tabularResult', params: { taskId: task.task_id } })
 }
+
+function formatDate(timestamp: string) {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function formatTime(timestamp: string) {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
 </script>
 
 <template>
   <div class="task-board">
-    <h2>✅ Completed Tasks</h2>
-    <div v-if="taskStore.completedTasks.length === 0">No tasks</div>
-    <div
-      v-for="task in taskStore.completedTasks"
-      :key="task.task_id"
-      class="task-card"
-      @click="goToResult(task)"
-      style="cursor: pointer;"
-    >
-      <h3>{{ task.filename }}</h3>
-      <p>{{ task.message }}</p>
+    <div v-for="task in taskStore.completedTasks" :key="task.task_id" class="task-row" @click="goToResult(task)">
+      <div class="task-info">
+        <div class="filename"> - {{ task.filename }} is successfully</div>
+      </div>
+      <div class="task-time">
+        <div class="time">{{ formatTime(task.timestamp) }}</div>
+        <div class="date">{{ formatDate(task.timestamp) }}</div>
+      </div>
     </div>
   </div>
 </template>
@@ -51,10 +58,38 @@ function goToResult(task: any) {
 .task-board {
   padding: 20px;
 }
-.task-card {
-  border: 1px solid #ddd;
-  padding: 16px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+
+.task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #999;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  accent-color: black;
+}
+
+.task-info {
+  flex: 1;
+  font-size: 16px;
+}
+
+.task-time {
+  text-align: right;
+  min-width: 100px;
+  font-size: 14px;
+  color: #333;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
 }
 </style>
