@@ -42,13 +42,21 @@ function formatTime(timestamp: string) {
 
 <template>
   <div class="task-board">
-    <div v-for="task in taskStore.completedTasks" :key="task.task_id" class="task-row" @click="goToResult(task)">
-      <div class="task-info">
-        <div class="filename"> - {{ task.filename }} is successfully</div>
-      </div>
-      <div class="task-time">
-        <div class="time">{{ formatTime(task.timestamp) }}</div>
-        <div class="date">{{ formatDate(task.timestamp) }}</div>
+    <div
+      v-for="task in taskStore.completedTasks"
+      :key="task.task_id"
+      class="task-card"
+      @click="goToResult(task)"
+    >
+      <div class="task-content">
+        <div class="filename">
+          <span class="dot"></span>
+          {{ task.filename }} <span class="success-text">uploaded successfully</span>
+        </div>
+        <div class="timestamp">
+          <div class="time">{{ formatTime(task.timestamp) }}</div>
+          <div class="date">{{ formatDate(task.timestamp) }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -56,40 +64,58 @@ function formatTime(timestamp: string) {
 
 <style scoped>
 .task-board {
-  padding: 20px;
+  padding: 24px;
 }
 
-.task-row {
+.task-card {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  height: auto;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.task-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filename {
+  font-size: 18px;
+  font-weight: 600; 
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #999;
-  padding: 10px 0;
-  cursor: pointer;
+  color: #111827;
 }
 
-.checkbox input {
-  width: 24px;
-  height: 24px;
-  margin-right: 10px;
-  accent-color: black;
+.success-text {
+  margin-left: 8px;
+  font-size: 18px; 
+  font-weight: 500;
+  color: #10b981;
 }
 
-.task-info {
-  flex: 1;
-  font-size: 16px;
-}
-
-.task-time {
+.timestamp {
   text-align: right;
-  min-width: 100px;
-  font-size: 14px;
-  color: #333;
+  font-size: 16px; 
+  font-weight: 500;
+  color: #6b7280;
 }
 
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 30px;
+.dot {
+  width: 10px;
+  height: 10px;
+  background-color: #10b981;
+  border-radius: 50%;
+  margin-right: 10px;
 }
 </style>
