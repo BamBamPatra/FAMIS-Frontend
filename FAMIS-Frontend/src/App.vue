@@ -28,6 +28,9 @@ watchEffect(() => {
   }
 })
 
+import { useTaskBoardStore } from '@/stores/taskBoardStore'
+const taskBoardStore = useTaskBoardStore()
+
 
 </script>
 
@@ -59,7 +62,10 @@ watchEffect(() => {
           <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 512 512">
             <path d="M121 32C91.6 32 66 52 58.9 80.5L1.9 308.4C.6 313.5 0 318.7 0 323.9L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-92.1c0-5.2-.6-10.4-1.9-15.5l-57-227.9C446 52 420.4 32 391 32L121 32zm0 64l270 0 48 192-51.2 0c-12.1 0-23.2 6.8-28.6 17.7l-14.3 28.6c-5.4 10.8-16.5 17.7-28.6 17.7l-120.4 0c-12.1 0-23.2-6.8-28.6-17.7l-14.3-28.6c-5.4-10.8-16.5-17.7-28.6-17.7L73 288 121 96z"/>
           </svg>
-          <span>TASK</span>
+          <span>Waiting for confirm</span>
+          <span v-if="taskBoardStore.taskIds.length" class="badge">
+            {{ taskBoardStore.taskIds.length }}
+          </span>
         </RouterLink>
 
         <div class="divider"></div>
@@ -68,7 +74,7 @@ watchEffect(() => {
           <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 512 512">
             <path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9L0 168c0 13.3 10.7 24 24 24l110.1 0c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24l0 104c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65 0-94.1c0-13.3-10.7-24-24-24z"/>
           </svg>
-          <span>HISTORY</span>
+          <span>Check status</span>
         </RouterLink>
       </div>
 
@@ -94,34 +100,33 @@ watchEffect(() => {
 }
 
 .navbar {
-  width: 220px;
-  padding: 20px 16px;
-  border-right: 1px solid #000;
+  width: 240px;
+  padding: 24px 16px;
+  border-right: 2px solid #000;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   background-color: #fff;
 }
 
 .profile-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding-left: 10px;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding-left: 4px;
 }
 
 .email {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 600;
   color: #000;
 }
 
 .divider {
   width: 100%;
-  height: 2px;
+  height: 1px;
   background-color: #000;
-  margin: 12px 0;
+  margin: 16px 0;
 }
 
 .nav-group {
@@ -131,35 +136,44 @@ watchEffect(() => {
 .nav-row {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 12px 10px;
+  gap: 16px;
+  padding: 14px 12px;
   color: #000;
   text-decoration: none;
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
+  transition: background-color 0.3s, color 0.3s;
+  border-radius: 12px;
 }
 
 .nav-row:hover {
   background-color: #9B7EBD;
   color: #fff;
-  border-radius: 50px;
+}
+
+.router-link-exact-active {
+  background-color: #9B7EBD;
+  color: #fff;
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   fill: currentColor;
+  flex-shrink: 0;
 }
 
 .profile-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
+  fill: #000;
 }
 
 .main-content {
   flex: 1;
-  padding: 16px;
+  padding: 24px;
 }
+
 
 .toast {
   position: fixed;
@@ -184,4 +198,19 @@ watchEffect(() => {
   90% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-10px); }
 }
+
+.badge {
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
 </style>
