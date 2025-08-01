@@ -4,9 +4,11 @@ import Notification from '@/components/NotificationIcon.vue'
 import { useToastStore } from '@/stores/popupStore.ts'
 const toastStore = useToastStore()
 import { useNotificationStore } from '@/stores/notificationStore.ts'
-import { watchEffect } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+import { watchEffect, onMounted } from 'vue'
 
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 const successSound = new Audio('/notify.mp3')
 const shownTasks = new Set<string>()
 
@@ -28,23 +30,36 @@ watchEffect(() => {
   }
 })
 
-import { useTaskBoardStore } from '@/stores/taskBoardStore'
+import { useTaskBoardStore } from '@/stores/taskboardStore'
 const taskBoardStore = useTaskBoardStore()
 
+onMounted(() => {
+  // Check authentication status on app load
+  authStore.checkAuth()
+})
 
+const handleLogout = () => {
+  authStore.logout()
+  window.location.href = '/login'
+}
 </script>
 
 <template>
   <div id="layout">
-    <!-- Sidebar -->
-    <div class="navbar">
+    <!-- Sidebar - Only show when authenticated -->
+    <div v-if="authStore.isAuthenticated" class="navbar">
       
       <!-- Profile -->
       <div class="profile-row">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon profile-icon" viewBox="0 0 448 512">
           <path d="M304 128a80 80 0 1 0 -160 0 80 80 0 1 0 160 0zM96 128a128 128 0 1 1 256 0A128 128 0 1 1 96 128zM49.3 464l349.5 0c-8.9-63.3-63.3-112-129-112l-91.4 0c-65.7 0-120.1 48.7-129 112zM0 482.3C0 383.8 79.8 304 178.3 304l91.4 0C368.2 304 448 383.8 448 482.3c0 16.4-13.3 29.7-29.7 29.7L29.7 512C13.3 512 0 498.7 0 482.3z"/>
         </svg>
-        <div class="email">ABC@cmu.ac.th</div>
+        <div class="email">{{ authStore.userInfo?.email || 'User' }}</div>
+        <button @click="handleLogout" class="logout-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32L64 160c0-17.7 14.3-32 32-32l64 0z"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Menu Items -->
@@ -81,8 +96,8 @@ const taskBoardStore = useTaskBoardStore()
     </div>
 
     <!-- Main Content -->
-    <div class="main-content">
-      <Notification />
+    <div class="main-content" :class="{ 'full-width': !authStore.isAuthenticated }">
+      <Notification v-if="authStore.isAuthenticated" />
       <RouterView />
     </div>
 
@@ -120,6 +135,36 @@ const taskBoardStore = useTaskBoardStore()
   font-size: 17px;
   font-weight: 600;
   color: #000;
+  flex: 1;
+}
+
+.logout-btn {
+  background: #ff4757;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.logout-btn:hover {
+  background-color: #ff3742;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .divider {
@@ -172,6 +217,10 @@ const taskBoardStore = useTaskBoardStore()
 .main-content {
   flex: 1;
   padding: 24px;
+}
+
+.main-content.full-width {
+  margin-left: 0;
 }
 
 
