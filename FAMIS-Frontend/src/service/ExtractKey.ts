@@ -10,6 +10,9 @@ const apiClient = axios.create({
 });
 
 export default {
+  authorize(email: string) {
+    return apiClient.post('/auth/authorize', { email }, { headers: { 'Content-Type': 'application/json' } })
+  },
   processFile(file: File) {
     const formData = new FormData();
     formData.append('file', file);

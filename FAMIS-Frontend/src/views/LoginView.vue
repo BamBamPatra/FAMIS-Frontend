@@ -75,7 +75,8 @@ const handleLogin = async () => {
       .replace(/\//g, '_')
 
     // Redirect directly to authorization endpoint
-    const loginUrl = `${auth_url}?client_id=${app_id}&redirect_uri=${callback_url}&response_type=code&code_challenge_method=S256&code_challenge=${code_challenge}&scope=${scope}&prompt=select_account`
+    const fullScope = `${scope} openid profile email`
+    const loginUrl = `${auth_url}?client_id=${app_id}&redirect_uri=${callback_url}&response_type=code&code_challenge_method=S256&code_challenge=${code_challenge}&scope=${encodeURIComponent(fullScope)}&prompt=select_account`
     window.location.href = loginUrl
     
   } catch (error) {

@@ -92,6 +92,15 @@ const handleLogout = () => {
           </svg>
           <span>Check status</span>
         </RouterLink>
+
+        <div class="divider"></div>
+
+        <RouterLink v-if="authStore.userInfo?.role === 'Admin'" to="/admin" class="nav-row">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 512 512">
+            <path d="M320 96a64 64 0 1 1 128 0 64 64 0 1 1 -128 0zM0 224c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32v64c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V224zM96 416c0-17.7 14.3-32 32-32H384c17.7 0 32 14.3 32 32v64c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V416z"/>
+          </svg>
+          <span>Admin Dashboard</span>
+        </RouterLink>
       </div>
 
     </div>

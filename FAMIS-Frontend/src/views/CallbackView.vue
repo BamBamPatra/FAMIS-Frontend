@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import api from '@/service/ExtractKey'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -33,6 +34,19 @@ const authStore = useAuthStore()
 
 const loading = ref(true)
 const error = ref('')
+
+const decodeIdToken = (idToken: string): any | null => {
+  try {
+    const base64Url = idToken.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    }).join(''))
+    return JSON.parse(jsonPayload)
+  } catch {
+    return null
+  }
+}
 
 const getAccessToken = async () => {
   try {
@@ -52,12 +66,45 @@ const getAccessToken = async () => {
     
     const { data } = await axios.request(options)
     
-    // Store access token and user info in auth store
+    // Store access token first (for subsequent calls if needed)
     authStore.setAccessToken(data.access_token)
-    
-    if (data.user) {
-      authStore.setUserInfo(data.user)
+
+    // Try to extract email from id_token claims first
+    let email: string | undefined
+    if (data.id_token) {
+      const claims = decodeIdToken(data.id_token) || {}
+      email = claims.email || claims.preferred_username || claims.upn || claims.unique_name
     }
+    // Fallbacks from token response props if any
+    email = email || (data.user && data.user.email) || data.preferred_username || data.upn
+
+    if (!email) {
+      // Try CMU Basic Info API if configured
+      const basicInfoUrl = import.meta.env.VITE_BASICINFO_URL
+      if (basicInfoUrl) {
+        const basic = await axios.get(basicInfoUrl, {
+          headers: { Authorization: `Bearer ${data.access_token}` }
+        })
+        const b = basic.data || {}
+        email = b.email || b.contact?.email || b.cmuitaccount?.email || b.username || b.contact?.cmuitaccount
+      }
+    }
+
+    if (!email) {
+      // Fallback: ask user to re-login with prompt=select_account
+      throw new Error('No email found from token or profile')
+    }
+
+    // Call backend authorization to check UserAccount & role
+    const authz = await api.authorize(email)
+    const authzData = authz.data
+
+    if (authzData.status !== 'success') {
+      throw new Error(authzData.message || 'Not authorized')
+    }
+
+    // Persist user profile with role for UI gating
+    authStore.setUserInfo({ email: authzData.user.email, role: authzData.user.role, user_id: authzData.user.user_id })
     
     // Redirect to main application
     router.push('/')
@@ -65,8 +112,10 @@ const getAccessToken = async () => {
     sessionStorage.removeItem('code_verifier')
     
   } catch (err: any) {
-    console.error('Token exchange error:', err)
-    error.value = err.response?.data?.error_description || 'Authentication failed. Please try again.'
+    console.error('Token/authorization error:', err)
+    // Clear any partial auth state
+    authStore.logout()
+    error.value = err.response?.data?.message || err.message || 'Authentication failed. Please try again.'
     loading.value = false
   }
 }
