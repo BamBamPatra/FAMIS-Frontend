@@ -40,7 +40,8 @@ onMounted(() => {
 
 const handleLogout = () => {
   authStore.logout()
-  window.location.href = '/login'
+  const logoutUrl = import.meta.env.VITE_LOGOUT_URL
+  window.location.href = logoutUrl
 }
 </script>
 

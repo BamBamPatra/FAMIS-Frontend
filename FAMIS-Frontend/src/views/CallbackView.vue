@@ -61,6 +61,8 @@ const getAccessToken = async () => {
     
     // Redirect to main application
     router.push('/')
+    // Clean up PKCE verifier after successful exchange
+    sessionStorage.removeItem('code_verifier')
     
   } catch (err: any) {
     console.error('Token exchange error:', err)

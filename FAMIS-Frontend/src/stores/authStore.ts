@@ -30,7 +30,10 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = () => {
     accessToken.value = null
     userInfo.value = null
-    sessionStorage.clear()
+    // Remove only auth-related keys to avoid nuking other app states
+    sessionStorage.removeItem('access_token')
+    sessionStorage.removeItem('user_info')
+    sessionStorage.removeItem('code_verifier')
   }
 
   const checkAuth = () => {

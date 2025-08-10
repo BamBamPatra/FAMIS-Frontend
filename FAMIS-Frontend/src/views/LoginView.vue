@@ -61,6 +61,10 @@ const handleLogin = async () => {
     console.log('callback_url:', callback_url)
     console.log('scope:', scope)
 
+    // Ensure local session is cleared before starting a new login
+    sessionStorage.removeItem('access_token')
+    sessionStorage.removeItem('user_info')
+
     const code_verifier = generateCodeVerifier()
     sessionStorage.setItem('code_verifier', code_verifier)
 
@@ -70,15 +74,9 @@ const handleLogin = async () => {
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
 
-    // Clear any existing session first
-    const logoutUrl = import.meta.env.VITE_LOGOUT_URL
-    window.location.href = logoutUrl
-    
-    // Then redirect to login (this will be handled by the logout redirect)
-    setTimeout(() => {
-      const loginUrl = `${auth_url}?client_id=${app_id}&redirect_uri=${callback_url}&response_type=code&code_challenge_method=S256&code_challenge=${code_challenge}&scope=${scope}&prompt=select_account`
-      window.location.href = loginUrl
-    }, 1000)
+    // Redirect directly to authorization endpoint
+    const loginUrl = `${auth_url}?client_id=${app_id}&redirect_uri=${callback_url}&response_type=code&code_challenge_method=S256&code_challenge=${code_challenge}&scope=${scope}&prompt=select_account`
+    window.location.href = loginUrl
     
   } catch (error) {
     console.error('Login error:', error)
