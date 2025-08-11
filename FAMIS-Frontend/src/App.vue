@@ -5,7 +5,7 @@ import { useToastStore } from '@/stores/popupStore.ts'
 const toastStore = useToastStore()
 import { useNotificationStore } from '@/stores/notificationStore.ts'
 import { useAuthStore } from '@/stores/authStore'
-import { watchEffect, onMounted } from 'vue'
+import { watchEffect, onMounted, onUnmounted, ref } from 'vue'
 
 const notificationStore = useNotificationStore()
 const authStore = useAuthStore()
@@ -43,6 +43,18 @@ const handleLogout = () => {
   const logoutUrl = import.meta.env.VITE_LOGOUT_URL
   window.location.href = logoutUrl
 }
+
+const showProfileMenu = ref(false)
+const profileRef = ref<HTMLElement | null>(null)
+const toggleProfileMenu = () => { showProfileMenu.value = !showProfileMenu.value }
+const handleClickOutside = (e: MouseEvent) => {
+  const el = profileRef.value
+  if (el && !el.contains(e.target as Node)) {
+    showProfileMenu.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <template>
@@ -51,16 +63,19 @@ const handleLogout = () => {
     <div v-if="authStore.isAuthenticated" class="navbar">
       
       <!-- Profile -->
-      <div class="profile-row">
+      <div class="profile-row" ref="profileRef">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon profile-icon" viewBox="0 0 448 512">
           <path d="M304 128a80 80 0 1 0 -160 0 80 80 0 1 0 160 0zM96 128a128 128 0 1 1 256 0A128 128 0 1 1 96 128zM49.3 464l349.5 0c-8.9-63.3-63.3-112-129-112l-91.4 0c-65.7 0-120.1 48.7-129 112zM0 482.3C0 383.8 79.8 304 178.3 304l91.4 0C368.2 304 448 383.8 448 482.3c0 16.4-13.3 29.7-29.7 29.7L29.7 512C13.3 512 0 498.7 0 482.3z"/>
         </svg>
-        <div class="email">{{ authStore.userInfo?.email || 'User' }}</div>
-        <button @click="handleLogout" class="logout-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-            <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32L64 160c0-17.7 14.3-32 32-32l64 0z"/>
+        <button class="email-btn" @click.stop="toggleProfileMenu" :title="authStore.userInfo?.email || 'User'">
+          <span class="email">{{ authStore.userInfo?.email || 'User' }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" class="caret">
+            <path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c20-20 5.8-54.6-22.6-54.6H32c-28.4 0-42.6 34.5-22.6 54.6l128 128z"/>
           </svg>
         </button>
+        <div v-if="showProfileMenu" class="profile-menu">
+          <button class="menu-item danger" @click="handleLogout">Logout</button>
+        </div>
       </div>
 
       <!-- Menu Items -->
@@ -95,7 +110,7 @@ const handleLogout = () => {
 
         <div class="divider"></div>
 
-        <RouterLink v-if="authStore.userInfo?.role === 'Admin'" to="/admin" class="nav-row">
+        <RouterLink v-if="(authStore.userInfo?.role || '').toLowerCase() === 'admin'" to="/admin" class="nav-row">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 512 512">
             <path d="M320 96a64 64 0 1 1 128 0 64 64 0 1 1 -128 0zM0 224c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32v64c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V224zM96 416c0-17.7 14.3-32 32-32H384c17.7 0 32 14.3 32 32v64c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V416z"/>
           </svg>
@@ -146,36 +161,19 @@ const handleLogout = () => {
   font-weight: 600;
   color: #000;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.logout-btn {
-  background: #ff4757;
-  border: none;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  gap: 6px;
-  min-width: 80px;
-}
-
-.logout-btn:hover {
-  background-color: #ff3742;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
-}
-
-.logout-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-}
+.email-btn { background:#e5e7eb; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; gap:6px; max-width: 160px; }
+.email-btn .email { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.email-btn .caret { width:12px; height:12px; fill:#111827; }
+.profile-menu { position: absolute; top: 68px; left: 84px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:flex; flex-direction:column; min-width:160px; z-index:10; }
+.menu-item { text-align:left; padding:10px 12px; background:none; border:none; cursor:pointer; }
+.menu-item:hover { background:#f3f4f6; }
+.menu-item.danger { color:#b91c1c; font-weight:600; }
+.menu-item.danger:hover { background:#fee2e2; color:#991b1b; }
 
 .divider {
   width: 100%;
