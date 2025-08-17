@@ -1,42 +1,9 @@
-<template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <h1>Welcome to FAMIS</h1>
-        <p>Please sign in to continue</p>
-      </div>
-      
-      <div class="login-content">
-        <div class="cmu-logo">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-          </svg>
-        </div>
-        
-        <button @click="handleLogin" class="login-btn" :disabled="isLoading">
-          <div v-if="isLoading" class="loading-spinner"></div>
-          <span v-else>Sign in with CMU Account</span>
-        </button>
-        
-        <button @click="handleLogout" class="logout-btn">
-          Clear Session & Sign In Again
-        </button>
-        
-        <div class="login-info">
-          <p>This application uses CMU Single Sign-On (SSO) for secure authentication.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import CryptoJS from 'crypto-js'
 
 const isLoading = ref(false)
 
-// Browser-compatible PKCE code verifier generation
 const generateCodeVerifier = (): string => {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
@@ -91,141 +58,88 @@ const handleLogout = () => {
 }
 </script>
 
+<template>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="title">FAMIS</h1>
+      <p class="subtitle">Financial Aid & Management Information System</p>
+
+      <button @click="handleLogin" class="auth-btn" :disabled="isLoading">
+        <div v-if="isLoading" class="loading-spinner"></div>
+        <span v-else>Sign in with CMU Account</span>
+      </button>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.login-container {
+
+.auth-container {
   min-height: 100vh;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  align-items: center;
+  background: #a894bf; 
   padding: 20px;
 }
 
-.login-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 48px;
+.auth-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 20px;
   max-width: 400px;
   width: 100%;
   text-align: center;
 }
 
-.login-header h1 {
+.title {
   font-size: 28px;
   font-weight: 700;
-  color: #333;
-  margin-bottom: 8px;
+  color: #4b2e83; 
+  margin-bottom: 6px;
 }
 
-.login-header p {
-  font-size: 16px;
+.subtitle {
+  font-size: 15px;
   color: #666;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
-.login-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-.cmu-logo {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #8A63B8, #9B7EBD);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.cmu-logo svg {
-  width: 32px;
-  height: 32px;
-  color: white;
-}
-
-.login-btn {
+.auth-btn {
   width: 100%;
-  padding: 16px 24px;
-  background: linear-gradient(135deg, #8A63B8, #9B7EBD);
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #6b4ba1; 
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 56px;
+  transition: background 0.25s;
 }
 
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(138, 99, 184, 0.3);
+.auth-btn:hover:not(:disabled) {
+  background: #5a3d8b; 
 }
 
-.login-btn:disabled {
+.auth-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.logout-btn {
-  width: 100%;
-  padding: 12px 24px;
-  background: #ff4757;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 12px;
-}
-
-.logout-btn:hover {
-  background: #ff3742;
-  transform: translateY(-1px);
-}
-
 .loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.4);
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.login-info {
-  margin-top: 16px;
-}
-
-.login-info p {
-  font-size: 14px;
-  color: #888;
-  line-height: 1.5;
-}
-
-@media (max-width: 480px) {
-  .login-card {
-    padding: 32px 24px;
-  }
-  
-  .login-header h1 {
-    font-size: 24px;
-  }
-}
-</style> 
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>

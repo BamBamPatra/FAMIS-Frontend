@@ -1,26 +1,3 @@
-<template>
-  <div class="callback-container">
-    <div class="callback-card">
-      <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <h2>Authenticating...</h2>
-        <p>Please wait while we complete your sign-in</p>
-      </div>
-      
-      <div v-if="error" class="error-content">
-        <div class="error-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-          </svg>
-        </div>
-        <h2>Authentication Failed</h2>
-        <p>{{ error }}</p>
-        <button @click="retryLogin" class="retry-btn">Try Again</button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
@@ -135,123 +112,112 @@ onMounted(async () => {
   }
 })
 </script>
+<template>
+  <div class="auth-container">
+    <div class="auth-card">
+      
+      <!-- Loading -->
+      <div v-if="!error" class="loading-content">
+        <div class="loading-spinner large"></div>
+        <h2>Signing you in...</h2>
+        <p>Please wait while we complete your login</p>
+      </div>
+
+      <!-- Error -->
+      <div v-else class="error-content">
+        <div class="error-icon">!</div>
+        <h2>Authentication Failed</h2>
+        <p>{{ error }}</p>
+        <button @click="retryLogin" class="auth-btn">Try Again</button>
+      </div>
+
+    </div>
+  </div>
+</template>
 
 <style scoped>
-.callback-container {
+.auth-container {
   min-height: 100vh;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  align-items: center;
+  background: #fff;
   padding: 20px;
 }
 
-.callback-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 48px;
+.auth-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 40px;
   max-width: 400px;
   width: 100%;
   text-align: center;
 }
 
-.loading-content {
+.loading-content, .error-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
 }
 
 .loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(138, 99, 184, 0.2);
-  border-top: 4px solid #8A63B8;
+  border: 3px solid rgba(107,75,161,0.2);
+  border-top: 3px solid #6b4ba1;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-content h2 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.loading-content p {
-  font-size: 16px;
-  color: #666;
-  margin: 0;
-}
-
-.error-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
+.loading-spinner.large {
+  width: 40px;
+  height: 40px;
 }
 
 .error-icon {
-  width: 64px;
-  height: 64px;
-  background: #ff4757;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.error-icon svg {
-  width: 32px;
-  height: 32px;
+  background: #ff4d4d;
   color: white;
+  font-weight: bold;
+  font-size: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.error-content h2 {
-  font-size: 24px;
+h2 {
+  font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: #4b2e83; /* ม่วงเข้ม */
   margin: 0;
 }
 
-.error-content p {
-  font-size: 16px;
-  color: #666;
+p {
+  font-size: 14px;
+  color: #555;
   margin: 0;
   line-height: 1.5;
 }
 
-.retry-btn {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #8A63B8, #9B7EBD);
-  color: white;
+.auth-btn {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 44px;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  background: #6b4ba1;
+  color: white;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.25s;
+}
+.auth-btn:hover {
+  background: #5a3d8b;
 }
 
-.retry-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(138, 99, 184, 0.3);
-}
-
-@media (max-width: 480px) {
-  .callback-card {
-    padding: 32px 24px;
-  }
-  
-  .loading-content h2,
-  .error-content h2 {
-    font-size: 20px;
-  }
-}
-</style> 
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
