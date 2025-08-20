@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, computed , nextTick } from 'vue'
-import { useTaskBoardStore } from '@/stores/taskBoardStore'
-import api from '@/service/Extractkey'
+import { useTaskBoardStore } from '@/stores/taskboardStore'
+import api from '@/service/ExtractKey'
+import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import Datepicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -10,26 +11,34 @@ const searchQuery = ref('')
 const showDatePicker = ref(false)
 const today = new Date()
 today.setHours(0, 0, 0, 0)
-const dateRange = ref<[Date | null, Date | null]>([null, null])
+const dateRange = ref<[Date, Date] | null>(null)
 
 
 const router = useRouter()
 const taskStore = useTaskBoardStore()
+const auth = useAuthStore()
 
 onMounted(() => {
-  dateRange.value = [null, null]  
+  dateRange.value = null  
   searchQuery.value = ''         
   taskStore.fetchCompletedTasks()
 })
 
 
 async function confirmTask(task: any) {
+  const userId = auth.userInfo?.user_id
+  if (!userId) {
+    console.error('No logged-in user id found; cannot save.')
+    return
+  }
   const payload = {
-    user_id: 1,
+    user_id: userId,
+    email: auth.userInfo?.email,
     filename: task.filename,
     image_path: `data:application/pdf;base64,${task.file_base64}`,
     structured_data: typeof task.result === 'string' ? task.result : JSON.stringify(task.result)
   }
+  console.log('[SAVE PAYLOAD]', payload)
 
   const res = await api.saveKeys(payload)
   if (res.data.status === 'success') {
@@ -53,7 +62,9 @@ function formatTime(timestamp: string) {
 
 const filteredTasks = computed(() => {
   const search = searchQuery.value.trim().toLowerCase()
-  const [start, end] = dateRange.value ?? [null, null]
+  const range = dateRange.value
+  const start = range ? range[0] : null
+  const end = range ? range[1] : null
 
 
   return taskStore.completedTasks.filter((task) => {
@@ -99,10 +110,10 @@ function toggleDatePicker() {
   }
 }
 
-function onDateSelected(val: [Date | null, Date | null]) {
+function onDateSelected(val: [Date, Date] | null) {
   dateRange.value = val
 
-  if (!val[0] && !val[1]) {
+  if (!val) {
     showDatePicker.value = false
     return
   }
@@ -114,7 +125,7 @@ function onDateSelected(val: [Date | null, Date | null]) {
 
 
 function onDateCleared() {
-  dateRange.value = [null, null]
+  dateRange.value = null
   searchQuery.value = ''
   showDatePicker.value = false
 }

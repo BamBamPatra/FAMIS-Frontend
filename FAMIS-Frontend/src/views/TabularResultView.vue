@@ -5,7 +5,8 @@ import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import type { FinancialKey } from '@/type'
 import ExtractKey from '@/service/ExtractKey'
 import Popup from '@/components/PopupAlert.vue'
-import { useTaskBoardStore } from '@/stores/taskBoardStore'
+import { useTaskBoardStore } from '@/stores/taskboardStore'
+import { useAuthStore } from '@/stores/authStore'
 const taskStore = useTaskBoardStore()
 
 
@@ -20,6 +21,8 @@ const isEditing = ref(false)
 const editableKeys = ref<FinancialKey[]>([])
 const pdfUrl = ref<string | null>(null)
 const showConfirmCancelPopup = ref(false)
+const fileBase64 = ref<string | null>(null)
+const auth = useAuthStore()
 
 const taskId = route.params.taskId as string | undefined
 const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
@@ -54,6 +57,7 @@ onMounted(async () => {
       const arr = new Uint8Array(bin.length)
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
       pdfUrl.value = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }))
+      fileBase64.value = res.data.file_base64
     }
   } catch {
     showPopup.value = true
@@ -114,11 +118,13 @@ async function handleSave() {
   
   try {
     const payload = {
-      user_id: '1',
+      user_id: auth.userInfo?.user_id,
+      email: auth.userInfo?.email,
       filename: financialStore.fileName || 'unknown.pdf',
-      image_path: `/tmp/${financialStore.fileName || 'unknown.pdf'}`,
+      image_path: fileBase64.value ? `data:application/pdf;base64,${fileBase64.value}` : `/tmp/${financialStore.fileName || 'unknown.pdf'}`,
       structured_data: financialStore.financialKeys
     }
+    console.log('[SAVE PAYLOAD - RESULT VIEW]', payload)
     const res = await ExtractKey.saveKeys(payload)
     if (res.data.status === 'success') {
     if (taskId) {
