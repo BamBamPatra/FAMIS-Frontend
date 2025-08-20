@@ -45,27 +45,54 @@ const getAccessToken = async () => {
     
     // Store access token first (for subsequent calls if needed)
     authStore.setAccessToken(data.access_token)
+    const basicInfoUrl = import.meta.env.VITE_BASICINFO_URL
+    let basicInfo: any | null = null
 
     // Try to extract email from id_token claims first
     let email: string | undefined
     let department: string | undefined
+    let tokenClaims: any = {}
     if (data.id_token) {
       const claims = decodeIdToken(data.id_token) || {}
+      tokenClaims = claims
       email = claims.email || claims.preferred_username || claims.upn || claims.unique_name
+      // Prefer organization_name_EN for department when available
+      department = department || claims.organization_name_EN || claims.organization_name_TH || claims.organization || claims.organization_en || claims.organization_th
+      console.log('[DEBUG] id_token claims:', claims)
     }
     // Fallbacks from token response props if any
     email = email || (data.user && data.user.email) || data.preferred_username || data.upn
 
     if (!email) {
       // Try CMU Basic Info API if configured
-      const basicInfoUrl = import.meta.env.VITE_BASICINFO_URL
       if (basicInfoUrl) {
         const basic = await axios.get(basicInfoUrl, {
           headers: { Authorization: `Bearer ${data.access_token}` }
         })
         const b = basic.data || {}
+        basicInfo = b
         email = b.email || b.contact?.email || b.cmuitaccount?.email || b.username || b.contact?.cmuitaccount
-        department = b.department || b.org?.department || b.organization || undefined
+        // Prefer organization_name_EN for department from Basic Info when available
+        department = b.organization_name_EN || b.org?.organization_name_EN || b.department || b.org?.department || b.organization || undefined
+        console.log('[DEBUG] basic info:', b)
+      }
+    }
+
+    // Always attempt to fetch Basic Info (for logging/normalization) if not already fetched
+    if (!basicInfo && basicInfoUrl) {
+      try {
+        const basic = await axios.get(basicInfoUrl, {
+          headers: { Authorization: `Bearer ${data.access_token}` }
+        })
+        basicInfo = basic.data || null
+        if (basicInfo) {
+          console.log('[DEBUG] basic info:', basicInfo)
+          if (!department) {
+            department = basicInfo.organization_name_EN || basicInfo.org?.organization_name_EN || basicInfo.department || basicInfo.org?.department || basicInfo.organization || undefined
+          }
+        }
+      } catch (e) {
+        console.warn('Basic info fetch failed:', e)
       }
     }
 
@@ -74,7 +101,29 @@ const getAccessToken = async () => {
       throw new Error('No email found from token or profile')
     }
 
+    // Log a consolidated profile object in the requested shape
+    const profileForDebug = {
+      cmuitaccount_name: basicInfo?.cmuitaccount_name || tokenClaims?.cmuitaccount_name || '',
+      cmuitaccount: basicInfo?.cmuitaccount || tokenClaims?.cmuitaccount || email || '',
+      student_id: basicInfo?.student_id || '',
+      prename_id: basicInfo?.prename_id || '',
+      prename_TH: basicInfo?.prename_TH || '',
+      prename_EN: basicInfo?.prename_EN || '',
+      firstname_TH: basicInfo?.firstname_TH || '',
+      firstname_EN: basicInfo?.firstname_EN || '',
+      lastname_TH: basicInfo?.lastname_TH || '',
+      lastname_EN: basicInfo?.lastname_EN || '',
+      organization_code: basicInfo?.organization_code || tokenClaims?.organization_code || '',
+      organization_name_TH: basicInfo?.organization_name_TH || tokenClaims?.organization_name_TH || '',
+      organization_name_EN: basicInfo?.organization_name_EN || tokenClaims?.organization_name_EN || '',
+      itaccounttype_id: basicInfo?.itaccounttype_id || '',
+      itaccounttype_TH: basicInfo?.itaccounttype_TH || '',
+      itaccounttype_EN: basicInfo?.itaccounttype_EN || ''
+    }
+    console.log('[DEBUG] CMU Profile (normalized):', profileForDebug)
+
     // Call backend authorization to check UserAccount & role
+    console.log('[DEBUG] derived email/department:', { email, department: department || 'Student' })
     const authz = await api.authorize(email, department || 'Student')
     const authzData = authz.data
 
