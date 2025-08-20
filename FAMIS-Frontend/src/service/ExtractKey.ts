@@ -10,8 +10,10 @@ const apiClient = axios.create({
 });
 
 export default {
-  authorize(email: string) {
-    return apiClient.post('/auth/authorize', { email }, { headers: { 'Content-Type': 'application/json' } })
+  authorize(email: string, department?: string | null) {
+    const payload: Record<string, any> = { email }
+    if (department) payload.department = department
+    return apiClient.post('/auth/authorize', payload, { headers: { 'Content-Type': 'application/json' } })
   },
   processFile(file: File) {
     const formData = new FormData();

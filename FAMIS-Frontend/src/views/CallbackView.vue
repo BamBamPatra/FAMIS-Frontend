@@ -48,6 +48,7 @@ const getAccessToken = async () => {
 
     // Try to extract email from id_token claims first
     let email: string | undefined
+    let department: string | undefined
     if (data.id_token) {
       const claims = decodeIdToken(data.id_token) || {}
       email = claims.email || claims.preferred_username || claims.upn || claims.unique_name
@@ -64,6 +65,7 @@ const getAccessToken = async () => {
         })
         const b = basic.data || {}
         email = b.email || b.contact?.email || b.cmuitaccount?.email || b.username || b.contact?.cmuitaccount
+        department = b.department || b.org?.department || b.organization || undefined
       }
     }
 
@@ -73,7 +75,7 @@ const getAccessToken = async () => {
     }
 
     // Call backend authorization to check UserAccount & role
-    const authz = await api.authorize(email)
+    const authz = await api.authorize(email, department || 'Student')
     const authzData = authz.data
 
     if (authzData.status !== 'success') {
@@ -81,7 +83,7 @@ const getAccessToken = async () => {
     }
 
     // Persist user profile with role for UI gating
-    authStore.setUserInfo({ email: authzData.user.email, role: authzData.user.role, user_id: authzData.user.user_id })
+    authStore.setUserInfo({ email: authzData.user.email, role: authzData.user.role, user_id: authzData.user.user_id, department: authzData.user.department })
     
     // Redirect to main application
     router.push('/')
