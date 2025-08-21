@@ -50,14 +50,26 @@ function goToResult(task: any) {
   router.push({ name: 'tabularResult', params: { taskId: task.task_id } })
 }
 
+const INPUT_IS_UTC = true
+function parseDate(ts: string) {
+  const normalized = typeof ts === 'string' ? ts.replace(' ', 'T') : ts
+  const iso = INPUT_IS_UTC ? `${normalized}Z` : normalized
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? new Date(ts) : d
+}
+
 function formatDate(timestamp: string) {
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  const date = parseDate(timestamp)
+  return INPUT_IS_UTC
+    ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' }).format(date)
+    : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
 }
 
 function formatTime(timestamp: string) {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const date = parseDate(timestamp)
+  return INPUT_IS_UTC
+    ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }).format(date)
+    : new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date)
 }
 
 const filteredTasks = computed(() => {

@@ -35,5 +35,11 @@ export default {
   },
   getDocTypes() {
   return apiClient.get('/doc-types')
+  },
+  listMyUploads(payload: { user_id?: number; email?: string }) {
+    return apiClient.post('/uploads/by-user', payload, { headers: { 'Content-Type': 'application/json' } })
+  },
+  getExtractedByFile(fileId: number) {
+    return apiClient.get(`/uploads/${fileId}/extracted`)
   }
 };

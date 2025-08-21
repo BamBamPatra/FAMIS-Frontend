@@ -4,6 +4,7 @@ import PreviewFile from '@/views/PreviewFileView.vue'
 import TabularResultView from '@/views/TabularResultView.vue'
 import NoticeBoardView from '@/views/NoticeBoardView.vue'
 import TaskBoardView from '@/views/TaskBoardView.vue'
+import CheckStatusView from '@/views/CheckStatusView.vue'
 import LoginView from '@/views/LoginView.vue'
 import CallbackView from '@/views/CallbackView.vue'
 import AdminDashboardView from '@/views/AdminDashboardView.vue'
@@ -50,6 +51,12 @@ const router = createRouter({
       path: '/taskBoard',
       name: 'taskBoard',
       component: TaskBoardView,
+    }
+    ,
+    {
+      path: '/history',
+      name: 'checkStatus',
+      component: CheckStatusView,
     }
 
   ],
