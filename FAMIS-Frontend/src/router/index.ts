@@ -8,6 +8,7 @@ import CheckStatusView from '@/views/CheckStatusView.vue'
 import LoginView from '@/views/LoginView.vue'
 import CallbackView from '@/views/CallbackView.vue'
 import AdminDashboardView from '@/views/AdminDashboardView.vue'
+import ForCheckView from '@/views/ForCheckView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +22,11 @@ const router = createRouter({
       path: '/admin',
       name: 'adminDashboard',
       component: AdminDashboardView,
+    },
+    {
+      path: '/for-check',
+      name: 'forCheck',
+      component: ForCheckView,
     },
     {
       path: '/callback',
@@ -86,7 +92,8 @@ router.beforeEach((to, from, next) => {
   }
 
   // Admin-only routes
-  if (to.path.startsWith('/admin')) {
+  const adminOnlyPrefixes = ['/admin', '/for-check', '/archive']
+  if (adminOnlyPrefixes.some(prefix => to.path.startsWith(prefix))) {
     if (role !== 'admin') {
       next('/')
       return

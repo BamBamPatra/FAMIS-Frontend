@@ -149,8 +149,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
     <!-- Main Content -->
    <div class="main-content" :class="{ 'full-width': !authStore.isAuthenticated }">
       <Notification v-if="authStore.isAuthenticated" />
-      <AdminDashboard v-if="authStore.userInfo?.role?.toLowerCase() === 'admin'" />
-      <RouterView v-else />
+      <RouterView />
     </div>
 
     <!-- Toast -->
