@@ -29,6 +29,11 @@ const router = createRouter({
       component: ForCheckView,
     },
     {
+      path: '/for-check/:fileId',
+      name: 'forCheckDetail',
+      component: () => import('@/views/ForCheckDetailView.vue'),
+    },
+    {
       path: '/callback',
       name: 'callback',
       component: CallbackView,

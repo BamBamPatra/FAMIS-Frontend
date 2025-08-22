@@ -64,5 +64,11 @@ export default {
   },
   getExtractedByFile(fileId: number) {
     return apiClient.get(`/uploads/${fileId}/extracted`)
+  },
+  approveUpload(fileId: number) {
+    return apiClient.post(`/admin/uploads/${fileId}/approve`)
+  },
+  rejectUpload(fileId: number, reason?: string) {
+    return apiClient.post(`/admin/uploads/${fileId}/reject`, { reason })
   }
 };

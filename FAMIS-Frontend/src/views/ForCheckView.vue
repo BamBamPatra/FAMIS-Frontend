@@ -83,10 +83,11 @@ onMounted(fetchPending)
     <div v-else-if="filtered.length === 0" class="empty">No pending uploads.</div>
 
     <div v-else class="list">
-      <div v-for="u in filtered" :key="u.file_id" class="item">
+      <div v-for="u in filtered" :key="u.file_id" class="item" @click="$router.push({ name: 'forCheckDetail', params: { fileId: u.file_id } })" style="cursor:pointer;">
         <div class="left">
           <div class="name">{{ u.file_name }} <span class="muted">waiting for check</span></div>
           <div class="dept">{{ u.uploader_department || '-' }}</div>
+          <div class="uploader">{{ u.uploader_email || u.uploaded_by || '-' }}</div>
         </div>
         <div class="right">
           <div class="time">{{ fmtTime(u.uploaded_at) }}</div>
@@ -111,11 +112,13 @@ onMounted(fetchPending)
 
 .error { color: #b91c1c; margin-top: 8px; }
 .empty { color: #6b7280; margin-top: 12px; }
-.list { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
-.item { display: flex; justify-content: space-between; align-items: center; padding: 14px 4px; border-bottom: 1px solid #ddd; }
-.left .name { font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.item { display: flex; justify-content: space-between; align-items: center; padding: 14px 12px; border-bottom: 1px solid #ddd; position: relative; border-radius: 12px; transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; background: #fafafa; }
+.item:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.12); background: #ffffff; }
+.left .name { font-weight: 700; font-size: 16px; }
 .left .name .muted { font-weight: 400; color: #555; margin-left: 6px; }
 .left .dept { color: #777; font-size: 12px; margin-top: 2px; }
+.left .uploader { color: #777; font-size: 12px; }
 .right { text-align: right; color: #555; }
 .right .time { font-size: 14px; }
 .right .date { font-size: 12px; }
