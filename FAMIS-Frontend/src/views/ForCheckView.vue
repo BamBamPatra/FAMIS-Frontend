@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import ExtractKey from '@/service/ExtractKey'
 
 type PendingStatus = 'pending' | 'approved' | 'rejected'
@@ -61,6 +61,34 @@ function fmtTime(ts?: string) {
 }
 
 onMounted(fetchPending)
+
+// Auto-refresh while page is open and listen for detail updates
+let intervalId: number | null = null
+function startAutoRefresh() {
+  if (intervalId) return
+  intervalId = window.setInterval(() => {
+    fetchPending()
+  }, 10000) // 10s
+}
+function stopAutoRefresh() {
+  if (intervalId) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+}
+
+function handleUpdated() {
+  fetchPending()
+}
+
+onMounted(() => {
+  startAutoRefresh()
+  window.addEventListener('for-check-updated', handleUpdated as EventListener)
+})
+onUnmounted(() => {
+  stopAutoRefresh()
+  window.removeEventListener('for-check-updated', handleUpdated as EventListener)
+})
 </script>
 
 <template>

@@ -173,6 +173,7 @@ function fmtTime(ts: string) {
         <div class="col name">
           <div class="filename">{{ u.file_name }}</div>
           <div class="meta">{{ fmtDate(u.uploaded_at) }} • {{ fmtTime(u.uploaded_at) }}</div>
+          <div v-if="(u.status || '').toLowerCase() === 'rejected' && u.reject_reason" class="reason">Reason: {{ u.reject_reason }}</div>
         </div>
         <div class="col status">
           <span class="badge" :class="(u.status || 'pending').toLowerCase()">{{ (u.status || 'pending') }}</span>
@@ -235,6 +236,7 @@ function fmtTime(ts: string) {
 .row { display: grid; grid-template-columns: 1fr 160px 120px; align-items: center; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; }
 .filename { font-weight: 600; }
 .meta { color: #6b7280; font-size: 12px; }
+.reason { color: #991b1b; font-size: 12px; margin-top: 2px; }
 .badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: capitalize; }
 .badge.pending { background: #fef3c7; color: #92400e; }
 .badge.approved { background: #d1fae5; color: #065f46; }

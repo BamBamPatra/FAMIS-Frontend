@@ -32,6 +32,7 @@ async function load() {
 async function approve() {
   try {
     await ExtractKey.approveUpload(fileId)
+    window.dispatchEvent(new CustomEvent('for-check-updated'))
     router.push({ name: 'forCheck' })
   } catch (e: any) {
     alert(e?.response?.data?.message || 'Approve failed')
@@ -43,6 +44,7 @@ const showReject = ref(false)
 async function reject() {
   try {
     await ExtractKey.rejectUpload(fileId, rejectReason.value || undefined)
+    window.dispatchEvent(new CustomEvent('for-check-updated'))
     router.push({ name: 'forCheck' })
   } catch (e: any) {
     alert(e?.response?.data?.message || 'Reject failed')
