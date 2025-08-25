@@ -10,7 +10,7 @@ export const useToastStore = defineStore('toast', () => {
     message.value = msg
     type.value = msgType
     show.value = true
-    setTimeout(() => (show.value = false), 3000)
+    setTimeout(() => (show.value = false), 5000)
   }
 
   return { show, message, type, trigger }

@@ -14,7 +14,8 @@ const emit = defineEmits<{
 <template>
   <div v-if="show" class="popup">
     <div class="popup-content">
-      <p class="popup-message">{{ message }}</p> <slot /> </div>
+      <p class="popup-message">{{ message }}</p> <slot /> 
+    </div>
   </div>
 </template>
 
@@ -34,37 +35,10 @@ const emit = defineEmits<{
 
 .popup-content {
   background: white;
-  padding: 24px 32px;
+  padding: 0px 32px 20px 32px;
   border-radius: 12px;
   max-width: 500px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   text-align: center;
-}
-
-.popup-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
-
-.popup-close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #999;
-  cursor: pointer;
-  padding: 0 5px;
-  line-height: 1;
-  transition: color 0.2s ease;
-}
-
-.popup-close:hover {
-  color: #555;
-}
-
-.popup-message {
-  font-size: 18px;
-  margin-bottom: 20px;
-  color: #333;
 }
 </style>

@@ -59,7 +59,7 @@ const closeAssign = () => { showAssign.value = false; assignEmail.value=''; assi
 const confirmAssign = async () => {
   try {
     await adminStore.assignUser(assignEmail.value, assignRole.value)
-    toast.trigger(`[${assignEmail.value}] is already registered.`, 'info')
+    toast.trigger(`${assignEmail.value} is already registered.`, 'info')
     closeAssign()
   } catch (err) {
     toast.trigger('Failed to add user.', 'error')
@@ -73,7 +73,7 @@ const confirmChange = async () => {
   if (!selectedUser.value) return
   try {
     await adminStore.changeRole(selectedUser.value.id, changeRole.value)
-    toast.trigger(`[${selectedUser.value.email}] role is successfully updated.`, 'success')
+    toast.trigger(`${selectedUser.value.email} role is successfully updated.`, 'success')
     closeChange()
   } catch (err) {
     toast.trigger('Failed to update role.', 'error')
@@ -87,7 +87,7 @@ const confirmDelete = async () => {
   if (!selectedUser.value) return
   try {
     await adminStore.deleteUser(selectedUser.value.id)
-    toast.trigger(`[${selectedUser.value.email}] account has been successfully removed.`, 'success')
+    toast.trigger(`${selectedUser.value.email} account has been successfully removed.`, 'success')
     closeDelete()
   } catch (err){
     toast.trigger('Failed to deletr user.', 'error')

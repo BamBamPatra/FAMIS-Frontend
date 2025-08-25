@@ -9,7 +9,6 @@ import { useTaskBoardStore } from '@/stores/taskboardStore'
 import { useAuthStore } from '@/stores/authStore'
 const taskStore = useTaskBoardStore()
 
-
 const router = useRouter()
 const route = useRoute()
 const financialStore = useFinancialKeyStore()
@@ -26,7 +25,6 @@ const auth = useAuthStore()
 
 const taskId = route.params.taskId as string | undefined
 const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
-
 
 onMounted(async () => {
   isEditing.value = false 
@@ -156,7 +154,6 @@ function confirmDiscard() {
     router.push({ name: 'uploadFile' }); 
   });
 }
-
 </script>
 
 <template>
@@ -187,7 +184,6 @@ function confirmDiscard() {
         <button @click="handleCancelEdits" class="cancel-btn">CANCEL EDIT</button>
         <button @click="handleSaveEdits" class="confirm-btn">CONFIRM EDIT</button>
       </div>
-
     </div>
 
     <!-- Table -->
@@ -242,34 +238,32 @@ function confirmDiscard() {
       </tbody>
     </table>
 
-    <!-- Final Buttons -->
     <div class="footer-btn" v-if="!isEditing">
-      <button class="cancel-btn" @click="router.push({ name: 'taskBoard' })">
-        CANCEL
-      </button>
+      <button class="danger-btn" @click="router.push({ name: 'taskBoard' })">CANCEL</button>
       <button class="confirm-btn" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'CONFIRM' }}
       </button>
     </div>
 
-
-    <!-- Popup -->
-    <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
-
-    <Popup v-if="showConfirmCancelPopup" :show="true" @close="showConfirmCancelPopup = false">
-      <template #default>
-        <div class="popup-header">
-          <button class="popup-close" @click="showConfirmCancelPopup = false">×</button>
-        </div>
-        <p>Are you sure to discard the data?</p>
-        <div class="popup-actions">
-          <button class="confirm-btn" @click="confirmDiscard">Confirm Cancel</button>
-        </div>
-      </template>
-    </Popup>
-
   </div>
 
+    <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />
+
+    <!-- Confirm Discard Popup -->
+    <Popup :show="showConfirmCancelPopup" @close="showConfirmCancelPopup = false">
+      <div class="popup-header">
+        <h3 class="popup-title">Discard Data?</h3>
+        <button class="popup-close" @click="showConfirmCancelPopup = false">×</button>
+      </div>
+      <p class="popup-message">
+        Are you sure you want to discard all extracted data? <br />
+        This action cannot be undone.
+      </p>
+      <div class="popup-actions">
+        <button class="cancel-btn" @click="showConfirmCancelPopup = false">Cancel</button>
+        <button class="danger-btn" @click="confirmDiscard">Discard</button>
+      </div>
+    </Popup>
 
 </template>
 
@@ -303,25 +297,6 @@ function confirmDiscard() {
   border-radius: 10px;
   font-weight: bold;
   width: 100%;
-}
-
-.close-btn {
-  position: absolute;
-  right: 0;
-  background-color: transparent;
-  color: white;
-  font-size: 1.5rem;
-  margin-right: 20px;
-  border: none;
-  cursor: pointer;
-  background-color: #582c6d;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Table */
@@ -374,76 +349,6 @@ function confirmDiscard() {
   justify-content: flex-end;
   width: 100%;
   gap: 16px;
-}
-
-/* Confirm Button */
-.confirm-btn {
-  background-color: #a675c6;
-  color: white;
-  padding: 10px 24px;
-  font-weight: bold;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-.confirm-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Cancle Button */
-.cancel-btn {
-  background-color: #CD3F41;
-  color: #333;
-  padding: 10px 24px;
-  font-weight: bold;
-  border-radius: 8px;
-  border: none;
-  margin-right: 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.cancel-btn:hover {
-  background-color: #bbb;
-}
-
-/* Popup alert */
-.popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.popup-content {
-  background: white;
-  padding: 24px 32px;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 500px;
-}
-
-.popup-content p {
-  font-size: 18px;
-  margin-bottom: 20px;
-}
-
-.popup-content button {
-  background-color: #4b255f;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  font-size: 14px;
-  border-radius: 6px;
-  cursor: pointer;
 }
 
 /* Preview file */
@@ -506,115 +411,152 @@ function confirmDiscard() {
   margin-bottom: 1rem;        
 }
 
-.generic-popup-content {
-  background: white;
-  padding: 24px 32px;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 500px;
-}
-
-.generic-popup-content p {
-  font-size: 18px;
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.generic-popup-content button {
-  background-color: #4b255f;
-  color: white;
+/* ===== Global Button Styles ===== */
+.btn {
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
   border: none;
-  padding: 8px 20px;
-  font-size: 14px;
-  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
-.generic-popup-content button:hover {
-  background-color: #3a1e4a;
+.btn-primary {
+  background-color: #a675c6;
+  color: white;
+}
+.btn-primary:hover { background-color: #8c5ba8; }
+
+.btn-danger {
+  background-color: #CD3F41;
+  color: white;
+}
+.btn-danger:hover { background-color: #b53638; }
+
+.btn-secondary {
+  background-color: #e5e5e5;
+  color: #333;
+}
+.btn-secondary:hover { background-color: #d4d4d4; }
+
+/* ===== Buttons ===== */
+.cancel-btn {
+  background-color: #e5e5e5;
+  color: #333;
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.cancel-btn:hover {
+  background-color: #d4d4d4;
 }
 
-/* Popup confirm cancel */
-.confirmation-popup-content {
+.confirm-btn {
+  background-color: #a675c6;
+  color: white;
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.confirm-btn:hover {
+  background-color: #387F39;
+  color: white;
+}
+
+.danger-btn {
+  background-color: #e5e5e5;
+  color: #333;
+  padding: 10px 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.danger-btn:hover {
+  background-color: #b53638;
+  color: white;
+}
+
+/* ===== Popup ===== */
+.popup-card {
   background: white;
-  padding: 24px 32px;
-  border-radius: 12px;
+  padding: 28px 32px;
+  border-radius: 16px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  animation: popupFadeIn 0.25s ease-out;
   text-align: center;
-  max-width: 500px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .popup-title {
   font-size: 20px;
   font-weight: bold;
-  color: #333;
-}
-
-.popup-header {
-  display: flex;
-  justify-content: end; 
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
 }
 
 .popup-close {
-  background: none;
+  position: absolute;
+  right: 0px;  
+  top: 0px;      
   border: none;
-  font-size: 28px; 
-  color: #999;
+  background: transparent;
+  font-size: 25px;
   cursor: pointer;
-  padding: 0 5px;
-  line-height: 1; 
-  transition: color 0.2s ease;
 }
 
-.popup-close:hover {
-  color: #555;
-}
+.popup-close:hover { color: #555; }
 
-.popup-message { 
-  font-size: 18px;
-  margin-bottom: 25px;
-  color: #555;
-  line-height: 1.5;
+.popup-message {
+  margin: 0;
 }
 
 .popup-actions {
   display: flex;
   justify-content: center; 
-  gap: 15px; 
-  margin-top: 20px;
+  gap: 12px;               
+  margin-top: 20px;       
 }
 
-.popup-actions .confirm-btn {
-  background-color: #a675c6; 
-  color: white;
-  padding: 10px 24px;
+.popup-actions .cancel-btn,
+.popup-actions .danger-btn {
+  padding: 8px 20px;       
   font-weight: bold;
   border-radius: 8px;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.popup-actions .confirm-btn:hover {
-  background-color: #8c5ba8; 
+  min-width: 100px;        
 }
 
 .popup-actions .cancel-btn {
-  background-color: #CD3F41; 
-  color: white; 
-  padding: 10px 24px;
-  font-weight: bold;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  background-color: #e5e5e5;
+  color: #333;
 }
 
 .popup-actions .cancel-btn:hover {
-  background-color: #b53638; 
+  background-color: #d4d4d4;
 }
 
+.popup-actions .danger-btn {
+  background-color: #cd3f41;
+  color: white;
+}
+
+.popup-actions .danger-btn:hover {
+  background-color: #b53638;
+}
 </style>

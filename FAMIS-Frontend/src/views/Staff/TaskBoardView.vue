@@ -13,7 +13,6 @@ const today = new Date()
 today.setHours(0, 0, 0, 0)
 const dateRange = ref<[Date, Date] | null>(null)
 
-
 const router = useRouter()
 const taskStore = useTaskBoardStore()
 const auth = useAuthStore()
@@ -23,7 +22,6 @@ onMounted(() => {
   searchQuery.value = ''         
   taskStore.fetchCompletedTasks()
 })
-
 
 async function confirmTask(task: any) {
   const userId = auth.userInfo?.user_id
@@ -99,9 +97,7 @@ const filteredTasks = computed(() => {
   })
 })
 
-
-
-
+// Fliter Picker date
 const filterButtonRef = ref<HTMLElement | null>(null)
 const datePickerStyle = ref({ top: '0px', left: '0px' })
 
@@ -135,37 +131,34 @@ function onDateSelected(val: [Date, Date] | null) {
   }
 }
 
-
 function onDateCleared() {
   dateRange.value = null
   searchQuery.value = ''
   showDatePicker.value = false
 }
-
-
-
-
 </script>
 
 <template>
 
   <div class="top-bar">
+
+    <!-- Search -->
     <div class="search-bar-container">
       <div class="search-bar">
+        <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 512 512">
+          <path
+            d="M505 442.7L405.3 343c28.3-34.9 45.3-79 45.3-127C450.6 96.5 354.1 0 232.8 0S15 96.5 15 216.1s96.5 216.1 216.1 216.1c48 0 92.1-17 127-45.3l99.7 99.7c9.3 9.3 24.6 9.3 33.9 0l14.3-14.3c9.3-9.3 9.3-24.6 0-33.9zM232.8 376.2c-88.5 0-160.1-71.6-160.1-160.1S144.3 56 232.8 56s160.1 71.6 160.1 160.1-71.6 160.1-160.1 160.1z"
+          />
+        </svg>
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search by filename..."
           class="search-input"
         />
-        <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 512 512">
-          <path
-            d="M505 442.7L405.3 343c28.3-34.9 45.3-79 45.3-127C450.6 96.5 354.1 0 232.8 0S15 96.5 15 216.1s96.5 216.1 216.1 216.1c48 0 92.1-17 127-45.3l99.7 99.7c9.3 9.3 24.6 9.3 33.9 0l14.3-14.3c9.3-9.3 9.3-24.6 0-33.9zM232.8 376.2c-88.5 0-160.1-71.6-160.1-160.1S144.3 56 232.8 56s160.1 71.6 160.1 160.1-71.6 160.1-160.1 160.1z"
-          />
-        </svg>
       </div>
 
-    <!-- ปุ่ม Filter -->
+    <!-- Filter -->
     <button
       ref="filterButtonRef"
       @click="toggleDatePicker"
@@ -229,32 +222,36 @@ function onDateCleared() {
 
 <style scoped>
 .task-board {
-  padding: 24px 0;
+  padding: 15px 0;
 }
 
 .task-card {
   background-color: #fff;
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;         
+  padding: 30px 30px;          
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); 
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  min-height: 60px;           
+  margin: 15px;
 }
 
 .task-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
 }
 
 .task-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 6px;     
+  padding-bottom: 6px;  
+  padding: 10px;
 }
 
 .filename {
-  font-size: 18px;
+  font-size: 20px;    
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -262,15 +259,15 @@ function onDateCleared() {
 }
 
 .success-text {
-  margin-left: 8px;
-  font-size: 18px;
+  margin-left: 10px;
+  font-size: 18px;   
   font-weight: 500;
   color: #10b981;
 }
 
 .timestamp {
   text-align: right;
-  font-size: 16px;
+  font-size: 18px;    
   font-weight: 500;
   color: #6b7280;
 }
@@ -311,7 +308,6 @@ function onDateCleared() {
   width: 800px;
 }
 
-
 .search-input {
   border: none;
   background: transparent;
@@ -321,7 +317,6 @@ function onDateCleared() {
   width: 100%;
   outline: none;
 }
-
 
 .search-icon {
   position: absolute;
@@ -339,7 +334,6 @@ function onDateCleared() {
   cursor: pointer;
   padding: 6px;
 }
-
 
 .filter-icon {
   width: 20px;
@@ -362,7 +356,7 @@ function onDateCleared() {
   display: flex;
   justify-content: center; 
   align-items: center;
-  padding: 24px 0;
+  padding: 10px 0;
 }
 
 .date-range-popup {
@@ -383,7 +377,5 @@ function onDateCleared() {
   align-items: center;
   justify-content: center;
 }
-
-
 
 </style>
