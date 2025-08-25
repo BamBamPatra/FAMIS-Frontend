@@ -1,14 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import UploadFile from '@/views/UploadFileView.vue'
-import PreviewFile from '@/views/PreviewFileView.vue'
-import TabularResultView from '@/views/TabularResultView.vue'
+import UploadFile from '@/views/Staff/UploadFileView.vue'
+import PreviewFile from '@/views/Staff/PreviewFileView.vue'
+import TabularResultView from '@/views/Staff/TabularResultView.vue'
 import NoticeBoardView from '@/views/NoticeBoardView.vue'
-import TaskBoardView from '@/views/TaskBoardView.vue'
-import CheckStatusView from '@/views/CheckStatusView.vue'
+import TaskBoardView from '@/views/Staff/TaskBoardView.vue'
+import CheckStatusView from '@/views/Staff/CheckStatusView.vue'
 import LoginView from '@/views/LoginView.vue'
 import CallbackView from '@/views/CallbackView.vue'
-import AdminDashboardView from '@/views/AdminDashboardView.vue'
-import ForCheckView from '@/views/ForCheckView.vue'
+import AdminDashboardView from '@/views/Admin/AdminDashboardView.vue'
+import ForCheckView from '@/views/Admin/ForCheckView.vue'
+import ForCheckDetailView from '@/views/Admin/ForCheckDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,7 +32,7 @@ const router = createRouter({
     {
       path: '/for-check/:fileId',
       name: 'forCheckDetail',
-      component: () => import('@/views/ForCheckDetailView.vue'),
+      component: ForCheckDetailView ,
     },
     {
       path: '/callback',
@@ -84,13 +85,17 @@ router.beforeEach((to, from, next) => {
     role = null
   }
 
-  // If user is authenticated and trying to access login, redirect to home
+  // ถ้า login แล้วไป /login ให้ redirect ตาม role
   if (to.path === '/login' && isAuthenticated) {
-    next('/')
+    if (role === 'admin') {
+      next('/admin')
+    } else {
+      next('/')
+    }
     return
   }
 
-  // If user is not authenticated and trying to access protected routes
+  // ถ้าไม่ login แล้วไปหน้า protected
   if (!isAuthenticated && to.path !== '/login' && to.path !== '/callback') {
     next('/login')
     return
@@ -98,11 +103,15 @@ router.beforeEach((to, from, next) => {
 
   // Admin-only routes
   const adminOnlyPrefixes = ['/admin', '/for-check', '/archive']
-  if (adminOnlyPrefixes.some(prefix => to.path.startsWith(prefix))) {
-    if (role !== 'admin') {
-      next('/')
-      return
-    }
+  if (adminOnlyPrefixes.some(prefix => to.path.startsWith(prefix)) && role !== 'admin') {
+    next('/') // staff redirect home
+    return
+  }
+
+  // Default redirect: ถ้าเข้า / แล้วเป็น admin -> ไป /admin
+  if (to.path === '/' && isAuthenticated && role === 'admin') {
+    next('/admin')
+    return
   }
 
   next()
