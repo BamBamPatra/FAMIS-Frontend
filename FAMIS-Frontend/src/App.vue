@@ -2,12 +2,16 @@
 import { RouterLink, RouterView } from 'vue-router'
 import Notification from '@/components/NotificationIcon.vue'
 import { useToastStore } from '@/stores/popupStore.ts'
-const toastStore = useToastStore()
 import { useNotificationStore } from '@/stores/notificationStore.ts'
 import { useAuthStore } from '@/stores/authStore'
 import { watchEffect, onMounted, onUnmounted, ref } from 'vue'
-import AdminDashboard from '@/views/AdminDashboardView.vue'
+import { useRouter } from 'vue-router'
+import Toast from '@/components/Toast.vue'
+import { useTaskBoardStore } from '@/stores/taskboardStore'
 
+const toastStore = useToastStore()
+const taskBoardStore = useTaskBoardStore()
+const router = useRouter()
 
 const notificationStore = useNotificationStore()
 const authStore = useAuthStore()
@@ -32,12 +36,16 @@ watchEffect(() => {
   }
 })
 
-import { useTaskBoardStore } from '@/stores/taskboardStore'
-const taskBoardStore = useTaskBoardStore()
-
-onMounted(() => {
-  // Check authentication status on app load
-  authStore.checkAuth()
+onMounted(async () => {
+  await authStore.checkAuth()
+  if (authStore.isAuthenticated) {
+    const role = authStore.userInfo?.role?.toLowerCase()
+    if (role === 'admin') {
+      router.replace('/admin')
+    } else {
+      router.replace('/')
+    }
+  }
 })
 
 const handleLogout = () => {
@@ -148,14 +156,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
     <!-- Main Content -->
    <div class="main-content" :class="{ 'full-width': !authStore.isAuthenticated }">
-      <Notification v-if="authStore.isAuthenticated" />
-      <RouterView />
-    </div>
+    <Notification v-if="authStore.isAuthenticated" />
+    <RouterView />
+  </div>
 
     <!-- Toast -->
-    <div v-if="toastStore.show" class="toast" :class="toastStore.type">
-      {{ toastStore.message }}
-    </div>
+    <Toast />    
   </div>
 </template>
 
@@ -309,30 +315,6 @@ html, body, button, input, select, textarea {
   margin-left: 0;
 }
 
-
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  color: white;
-  z-index: 9999;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  animation: fadeInOut 3s ease forwards;
-}
-
-.success { background-color: #4BB543; }
-.error { background-color: #E74C3C; }
-.info { background-color: #3498DB; }
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
 
 .badge {
   background-color: red;

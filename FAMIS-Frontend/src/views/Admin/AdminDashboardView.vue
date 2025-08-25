@@ -1,13 +1,48 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAdminUserStore, type AdminUser, type AdminRole } from '@/stores/adminUserStore'
-import { useAuthStore } from '@/stores/authStore'
+import { useToastStore } from '@/stores/popupStore'
 
+const toast = useToastStore()
 const adminStore = useAdminUserStore()
-const auth = useAuthStore()
+const currentPage = ref(1)   
+const pageSize = 20          
 
-const users = computed(() => adminStore.users)
-const currentEmail = computed(() => auth.userInfo?.email || 'user@cmu.ac.th')
+// Filter function
+const filterRoles = ref<{ admin: boolean; staff: boolean }>({
+  admin: true,
+  staff: true,
+})
+
+const filteredUsers = computed(() => {
+  const rolesSelected = Object.entries(filterRoles.value)
+    .filter(([_, checked]) => checked)
+    .map(([role]) => role)
+
+  if (rolesSelected.length === 0) return [...adminStore.users]
+
+  return [...adminStore.users]
+    .filter(u => rolesSelected.includes(u.role))
+    .sort((a, b) => {
+      if (a.role === b.role) return 0
+      return a.role === 'admin' ? -1 : 1
+    })
+})
+
+const totalPages = computed(() =>
+  Math.ceil(filteredUsers.value.length / pageSize)
+)
+
+// Pagination
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredUsers.value.slice(start, end)
+})
+
+watch(filteredUsers, () => {
+  currentPage.value = 1
+})
 
 const showAssign = ref(false)
 const assignEmail = ref('')
@@ -16,32 +51,49 @@ const assignRole = ref<AdminRole>('staff')
 const showChange = ref(false)
 const selectedUser = ref<AdminUser | null>(null)
 const changeRole = ref<AdminRole>('staff')
-
 const showDelete = ref(false)
 
+// Add new user
 const openAssign = () => { showAssign.value = true }
 const closeAssign = () => { showAssign.value = false; assignEmail.value=''; assignRole.value='staff' }
 const confirmAssign = async () => {
-  await adminStore.assignUser(assignEmail.value, assignRole.value)
-  closeAssign()
+  try {
+    await adminStore.assignUser(assignEmail.value, assignRole.value)
+    toast.trigger(`[${assignEmail.value}] is already registered.`, 'info')
+    closeAssign()
+  } catch (err) {
+    toast.trigger('Failed to add user.', 'error')
+  }
 }
 
+// Change role
 const openChange = (u: AdminUser) => { selectedUser.value = u; changeRole.value = u.role; showChange.value = true }
 const closeChange = () => { showChange.value = false; selectedUser.value = null }
 const confirmChange = async () => {
   if (!selectedUser.value) return
-  await adminStore.changeRole(selectedUser.value.id, changeRole.value)
-  closeChange()
+  try {
+    await adminStore.changeRole(selectedUser.value.id, changeRole.value)
+    toast.trigger(`[${selectedUser.value.email}] role is successfully updated.`, 'success')
+    closeChange()
+  } catch (err) {
+    toast.trigger('Failed to update role.', 'error')
+  }
 }
 
+// Delete user
 const openDelete = (u: AdminUser) => { selectedUser.value = u; showDelete.value = true }
 const closeDelete = () => { showDelete.value = false; selectedUser.value = null }
 const confirmDelete = async () => {
   if (!selectedUser.value) return
-  await adminStore.deleteUser(selectedUser.value.id)
-  closeDelete()
+  try {
+    await adminStore.deleteUser(selectedUser.value.id)
+    toast.trigger(`[${selectedUser.value.email}] account has been successfully removed.`, 'success')
+    closeDelete()
+  } catch (err){
+    toast.trigger('Failed to deletr user.', 'error')
+  }
 }
-
+  
 onMounted(() => {
   adminStore.fetchUsers()
 })
@@ -54,6 +106,21 @@ onMounted(() => {
         <button class="assign-btn" @click="openAssign">+ ADD NEW USER</button>
       </div>
 
+      <!-- Filter function -->
+      <div class="filter-row">
+        <label class="checkbox-wrapper">
+          <input type="checkbox" v-model="filterRoles.admin" />
+          <span class="custom-checkbox"></span>
+          Admin
+        </label>
+        <label class="checkbox-wrapper">
+          <input type="checkbox" v-model="filterRoles.staff" />
+          <span class="custom-checkbox"></span>
+          Staff
+        </label>
+      </div>
+
+      <!-- Table -->
       <div class="table">
         <div class="thead">
           <div class="th">Role</div>
@@ -62,7 +129,8 @@ onMounted(() => {
           <div class="th actions">Actions</div>
         </div>
 
-        <div class="row" v-for="u in users" :key="u.id">
+        <div class="row" v-for="u in paginatedUsers" :key="u.id">
+
           <div class="cell cap">{{ u.role }}</div>
           <div class="cell">{{ u.email }}</div>
           <div class="cell">{{ u.department || '-' }}</div>
@@ -128,10 +196,44 @@ onMounted(() => {
           <p>Confirm to delete {{ selectedUser?.email }} account</p>
           <div class="actions-row">
             <button class="ghost" @click="closeDelete">CANCEL</button>
-            <button class="danger" @click="confirmDelete" :disabled="!selectedUser">CONFIRM</button>
+            <button class="primary" @click="confirmDelete" :disabled="!selectedUser">CONFIRM</button>
           </div>
         </div>
       </div>
+    
+    <!-- Pagination -->
+    <div class="pagination" v-if="totalPages > 1">
+      <button
+        class="page-btn"
+        :disabled="currentPage === 1"
+        @click="currentPage--"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon-pagination" viewBox="0 0 640 640">
+          <path d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z"/>
+        </svg>
+      </button>
+
+      <button
+        v-for="page in totalPages"
+        :key="page"
+        class="page-btn"
+        :class="{ active: currentPage === page }"
+        @click="currentPage = page"
+      >
+        {{ page }}
+      </button>
+
+      <button
+        class="page-btn"
+        :disabled="currentPage === totalPages"
+        @click="currentPage++"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon-pagination" viewBox="0 0 640 640">
+          <path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/>
+        </svg>
+      </button>
+    </div>
+
   </div>
   
 </template>
@@ -291,6 +393,111 @@ onMounted(() => {
 .warn { 
   color: #ef4444; 
   text-align:center; 
+}
+
+/* Filter */
+.filter-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.checkbox-wrapper {
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  color: #333;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.custom-checkbox {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px;
+  width: 18px;
+  background-color: #fff;
+  border: 2px solid #b197fc; 
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+/* check mark */
+.checkbox-wrapper input:checked ~ .custom-checkbox {
+  background-color: #7c3aed; 
+  border-color: #7c3aed;
+}
+
+.custom-checkbox::after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-wrapper input:checked ~ .custom-checkbox::after {
+  display: block;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+
+.page-btn:hover:not(:disabled) {
+  background: #ede9fe;
+  border-color: #7c3aed;
+}
+
+.page-btn.active {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-pagination {
+  width: 14px;      
+  height: 14px;
+  fill: currentColor; 
+  vertical-align: middle;
 }
 </style>
 
