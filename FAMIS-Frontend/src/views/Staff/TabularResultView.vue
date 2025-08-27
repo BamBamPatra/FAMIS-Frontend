@@ -260,7 +260,6 @@ function confirmDiscard() {
         This action cannot be undone.
       </p>
       <div class="popup-actions">
-        <button class="cancel-btn" @click="showConfirmCancelPopup = false">Cancel</button>
         <button class="danger-btn" @click="confirmDiscard">Discard</button>
       </div>
     </Popup>
