@@ -9,7 +9,7 @@ import LoginView from '@/views/LoginView.vue'
 import CallbackView from '@/views/CallbackView.vue'
 import AdminDashboardView from '@/views/Admin/AdminDashboardView.vue'
 import ForCheckView from '@/views/Admin/ForCheckView.vue'
-import ForCheckDetailView from '@/views/Admin/ForCheckDetailView.vue'
+import VerificationDocumentView from '@/views/Admin/VerificationDocumentView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,8 +31,8 @@ const router = createRouter({
     },
     {
       path: '/for-check/:fileId',
-      name: 'forCheckDetail',
-      component: ForCheckDetailView ,
+      name: 'verificationDocument',
+      component: VerificationDocumentView ,
     },
     {
       path: '/callback',

@@ -246,7 +246,7 @@ function onDateCleared() {
 }
 
 .filename {
-  font-size: 20px;    
+  font-size: 23px;    
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -255,7 +255,7 @@ function onDateCleared() {
 
 .success-text {
   margin-left: 10px;
-  font-size: 18px;   
+  font-size: 22px;   
   font-weight: 500;
   color: #10b981;
 }

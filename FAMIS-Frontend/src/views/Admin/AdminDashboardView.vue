@@ -517,7 +517,7 @@ onMounted(() => {
   border-radius: 999px;
   display: flex;
   align-items: center;
-  width: 600px;
+  width: 400px;
   padding: 6px 12px;
 }
 .search-input {
