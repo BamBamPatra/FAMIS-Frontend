@@ -171,14 +171,20 @@ let intervalId: number | null = null
     <div class="list">
       <div v-for="u in filtered" :key="u.file_id" class="item"
         @click="$router.push({ name: 'verificationDocument', params: { fileId: u.file_id } })">
+        
         <div class="left">
-          <div class="name">{{ u.file_name }} <span class="muted">waiting for check</span></div>
+          <div class="name"> 
+            {{ u.file_name }} <span class="muted">waiting for check...</span>
+          </div>
           <div class="dept">{{ u.uploader_department || '-' }}</div>
+          <div class="email">{{ u.uploader_email || '-' }}</div> 
         </div>
+
         <div class="right">
           <div class="time">{{ fmtTime(u.uploaded_at) }}</div>
           <div class="date">{{ fmtDate(u.uploaded_at) }}</div>
         </div>
+
       </div>
     </div>
   </div>
@@ -275,6 +281,7 @@ let intervalId: number | null = null
   font-weight: 600;
   font-size: 20px;          
   color: #111827;
+  gap: 10px;
 }
 .left .name .muted {
   font-weight: 400;
@@ -283,8 +290,15 @@ let intervalId: number | null = null
 }
 .left .dept {
   font-size: 15px;          
-  margin-top: 2px;          
+  margin-top: 5px;          
 }
+.left .email {
+  font-size: 13px;
+  color: #7f8690;   
+  padding-top: 20px;
+  font-style: italic;
+}
+
 .dept-icon {
   width: 14px;
   height: 14px;

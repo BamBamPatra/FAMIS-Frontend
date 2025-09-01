@@ -66,8 +66,12 @@ async function confirmReject() {
     alert("Please enter reason for rejection")
     return
   }
-  await reject()
+
+  await ExtractKey.rejectUpload(fileId, rejectReason.value)  
+  window.dispatchEvent(new CustomEvent('for-check-updated'))
+  router.push({ name: 'forCheck' })
 }
+
 
 
 function getAmountClass(amount: number, page: number) {
