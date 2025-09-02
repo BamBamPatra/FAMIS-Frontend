@@ -5,6 +5,7 @@ import ExtractKey from '@/service/ExtractKey.ts'
 import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import Popup from '@/components/PopupAlert.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const financialStore = useFinancialKeyStore()
 const route = useRoute()
@@ -19,6 +20,7 @@ const showPopup = ref(false)
 const popupMessage = ref('')
 
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 function showAutoClosePopup(message: string, duration = 1500) {
   popupMessage.value = message
@@ -56,7 +58,11 @@ async function handleUpload() {
 
   isUploading.value = true
   try {
-    const response = await ExtractKey.processFile(file.value)
+    const user = {
+      email: authStore.userInfo?.email as string | undefined,
+      user_id: authStore.userInfo?.user_id as number | undefined,
+    }
+    const response = await ExtractKey.processFile(file.value, user)
     const taskId = response.data.task_id
 
     notificationStore.startPolling(taskId, selectedFileName.value || undefined)

@@ -34,9 +34,11 @@ export default {
     if (department) payload.department = department
     return apiClient.post('/auth/authorize', payload, { headers: { 'Content-Type': 'application/json' } })
   },
-  processFile(file: File) {
+  processFile(file: File, user?: { email?: string; user_id?: number }) {
     const formData = new FormData();
     formData.append('file', file);
+    if (user?.email) formData.append('email', user.email)
+    if (user?.user_id) formData.append('user_id', String(user.user_id))
 
     return apiClient.post('/process', formData, {
       headers: {
