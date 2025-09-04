@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ExtractKey from '@/service/ExtractKey'
-import { computed } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,14 +37,16 @@ async function load() {
 
 async function approve() {
   if (!isPending.value) return
-  await ExtractKey.approveUpload(fileId)
+  const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
+  await ExtractKey.approveUpload(fileId, isNaN(reviewerId) ? undefined : reviewerId)
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
 
 async function reject() {
   if (!isPending.value) return
-  await ExtractKey.rejectUpload(fileId)
+  const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
+  await ExtractKey.rejectUpload(fileId, rejectReason.value, isNaN(reviewerId) ? undefined : reviewerId)
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
@@ -91,6 +92,15 @@ function getAmountClass(amount: number, page: number) {
     if (mismatch) return 'highlight-red '
   }
   return ''
+}
+
+function authUserId(): number | undefined {
+  try {
+    const raw = sessionStorage.getItem('user_info')
+    if (!raw) return undefined
+    const obj = JSON.parse(raw)
+    return typeof obj?.user_id === 'number' ? obj.user_id : Number(obj?.user_id)
+  } catch { return undefined }
 }
 
 

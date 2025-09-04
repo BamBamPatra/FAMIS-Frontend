@@ -67,13 +67,21 @@ export default {
     // Backend endpoint returns: { status: 'success', uploads: PendingUpload[] }
     return apiClient.get('/admin/uploads/pending')
   },
+  listArchivedUploads() {
+    // Backend endpoint returns: { status: 'success', uploads: ArchivedUpload[] }
+    return apiClient.get('/admin/uploads/archive')
+  },
   getExtractedByFile(fileId: number) {
     return apiClient.get(`/uploads/${fileId}/extracted`)
   },
-  approveUpload(fileId: number) {
-    return apiClient.post(`/admin/uploads/${fileId}/approve`)
+  approveUpload(fileId: number, reviewerId?: number) {
+    const body: Record<string, any> = {}
+    if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
+    return apiClient.post(`/admin/uploads/${fileId}/approve`, body)
   },
-  rejectUpload(fileId: number, reason?: string) {
-    return apiClient.post(`/admin/uploads/${fileId}/reject`, { reason })
+  rejectUpload(fileId: number, reason?: string, reviewerId?: number) {
+    const body: Record<string, any> = { reason }
+    if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
+    return apiClient.post(`/admin/uploads/${fileId}/reject`, body)
   }
 };

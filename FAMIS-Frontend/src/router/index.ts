@@ -10,6 +10,7 @@ import CallbackView from '@/views/CallbackView.vue'
 import AdminDashboardView from '@/views/Admin/AdminDashboardView.vue'
 import ForCheckView from '@/views/Admin/ForCheckView.vue'
 import VerificationDocumentView from '@/views/Admin/VerificationDocumentView.vue'
+import ArchiveView from '@/views/Admin/ArchiveView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -69,6 +70,12 @@ const router = createRouter({
       path: '/history',
       name: 'checkStatus',
       component: CheckStatusView,
+    }
+    ,
+    {
+      path: '/archive',
+      name: 'archive',
+      component: ArchiveView,
     }
 
   ],
