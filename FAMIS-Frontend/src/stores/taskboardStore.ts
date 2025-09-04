@@ -24,6 +24,20 @@ export const useTaskBoardStore = defineStore('taskBoard', {
       )
       this.completedTasks = results.filter(Boolean)
     },
+    async hydrateFromBackend() {
+      try {
+        const res = await extractKeyAPI.getTaskBoard()
+        const data = Array.isArray(res.data?.data) ? res.data.data : []
+        for (const item of data) {
+          if (item?.task_id) this.addTaskId(String(item.task_id))
+        }
+        // Optionally keep a mirror list for UI that expects results shape
+        // Here we just map minimal fields
+        this.completedTasks = data
+      } catch {
+        // ignore hydration errors
+      }
+    },
     removeTask(taskId: string) {
       this.completedTasks = this.completedTasks.filter(t => t.task_id !== taskId)
       this.taskIds = this.taskIds.filter(id => id !== taskId)

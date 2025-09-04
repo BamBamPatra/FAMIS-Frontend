@@ -8,6 +8,7 @@ import { watchEffect, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Toast from '@/components/Toast.vue'
 import { useTaskBoardStore } from '@/stores/taskboardStore'
+import ExtractKey from '@/service/ExtractKey'
 
 const toastStore = useToastStore()
 const taskBoardStore = useTaskBoardStore()
@@ -19,14 +20,17 @@ const successSound = new Audio('/notify.mp3')
 const shownTasks = new Set<string>()
 
 const forCheckCount = ref(0)
+let pendingCountInterval: number | null = null
 
 onMounted(() => {
-  window.addEventListener('for-check-count', (e: any) => {
-    forCheckCount.value = e.detail || 0
+  const handleCount = (e: any) => { forCheckCount.value = e.detail || 0 }
+  const handleUpdated = async () => { await refreshPendingCount() }
+  window.addEventListener('for-check-count', handleCount)
+  window.addEventListener('for-check-updated', handleUpdated as EventListener)
+  onUnmounted(() => {
+    window.removeEventListener('for-check-count', handleCount)
+    window.removeEventListener('for-check-updated', handleUpdated as EventListener)
   })
-})
-onUnmounted(() => {
-  window.removeEventListener('for-check-count', () => {})
 })
 
 watchEffect(() => {
@@ -50,7 +54,14 @@ watchEffect(() => {
 onMounted(async () => {
   await authStore.checkAuth()
   if (authStore.isAuthenticated) {
+    // Rehydrate task board (waiting for confirm) after refresh
+    try { await taskBoardStore.hydrateFromBackend() } catch {}
     const role = authStore.userInfo?.role?.toLowerCase()
+    if (role === 'admin') {
+      await refreshPendingCount()
+      // light polling to keep badge and list updated
+      pendingCountInterval = window.setInterval(refreshPendingCount, 15000)
+    }
     if (role === 'admin') {
       router.replace('/admin')
     } else {
@@ -75,7 +86,24 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 }
 onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  if (pendingCountInterval) {
+    clearInterval(pendingCountInterval)
+    pendingCountInterval = null
+  }
+})
+
+async function refreshPendingCount() {
+  try {
+    const res = await ExtractKey.listPendingUploads()
+    const uploads = Array.isArray(res.data?.uploads) ? res.data.uploads : []
+    forCheckCount.value = uploads.length
+    window.dispatchEvent(new CustomEvent('for-check-count', { detail: forCheckCount.value }))
+  } catch {
+    /* no-op */
+  }
+}
 </script>
 
 <template>

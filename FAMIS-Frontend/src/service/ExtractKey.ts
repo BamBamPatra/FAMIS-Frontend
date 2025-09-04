@@ -57,6 +57,9 @@ export default {
   getDocTypes() {
   return apiClient.get('/doc-types')
   },
+  getTaskBoard() {
+    return apiClient.get('/task-board')
+  },
   listMyUploads(payload: { user_id?: number; email?: string }) {
     return apiClient.post('/uploads/by-user', payload, { headers: { 'Content-Type': 'application/json' } })
   },

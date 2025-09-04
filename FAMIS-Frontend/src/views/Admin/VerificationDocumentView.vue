@@ -37,12 +37,14 @@ async function load() {
 }
 
 async function approve() {
+  if (!isPending.value) return
   await ExtractKey.approveUpload(fileId)
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
 
 async function reject() {
+  if (!isPending.value) return
   await ExtractKey.rejectUpload(fileId)
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
@@ -94,6 +96,21 @@ function getAmountClass(amount: number, page: number) {
 
 
 onMounted(load)
+
+// Derived status from backend to prevent re-approval on browser back
+const uploadStatus = computed(() => {
+  const st = (items.value?.[0]?.upload_status || '').toString().toLowerCase()
+  return st || 'pending'
+})
+const isPending = computed(() => uploadStatus.value === 'pending')
+
+// If already approved/rejected, reflect it in the dropdown so the UI shows current state
+watchEffect(() => {
+  if (!isPending.value) {
+    if (uploadStatus.value === 'approved') decision.value = 'approved'
+    else if (uploadStatus.value === 'rejected') decision.value = 'rejected'
+  }
+})
 </script>
 
 <template>
@@ -125,7 +142,7 @@ onMounted(load)
               <td>{{ row.bill_number }}</td>
               <td>{{ row.supplier_name }}</td>
               <td>{{ row.payment_date }}</td>
-              <td :class="getAmountClass(row.amount, row.page, row.bill_number)"> {{ row.amount }}</td>
+              <td :class="getAmountClass(row.amount, row.page)"> {{ row.amount }}</td>
               <td>{{ row.signature }}</td>
             </tr>
           </tbody>
@@ -157,7 +174,7 @@ onMounted(load)
               <td>{{ row.bill_number }}</td>
               <td>{{ row.supplier_name }}</td>
               <td>{{ row.payment_date }}</td>
-              <td :class="getAmountClass(row.amount, row.page, row.bill_number)"> {{ row.amount }}</td>
+              <td :class="getAmountClass(row.amount, row.page)"> {{ row.amount }}</td>
               <td>{{ row.signature }}</td>
             </tr>
           </tbody>
@@ -167,7 +184,7 @@ onMounted(load)
 
       <!-- Action Buttons (fixed at bottom-right) -->
     <div class="action-buttons">
-      <select v-model="decision" class="decision-dropdown">
+      <select v-model="decision" class="decision-dropdown" :disabled="!isPending">
         <option value="" disabled>Select decision</option>
         <option value="approved" class="approved">Approved</option>
         <option value="rejected" class="rejected">Rejected</option>
@@ -175,7 +192,7 @@ onMounted(load)
 
       <div class="button-group">
         <button class="btn-cancel" @click="router.back()">CANCEL</button>
-        <button class="btn-confirm" @click="handleConfirm">CONFIRM</button>
+        <button class="btn-confirm" @click="handleConfirm" :disabled="!isPending">CONFIRM</button>
       </div>
     </div>
 
