@@ -126,6 +126,10 @@ watchEffect(() => {
 <template>
   <div class="content">
 
+    <div v-if="error" class="error" style="color:#b91c1c; font-weight:600; margin: 8px 0;">
+      {{ error }}
+    </div>
+
     <!-- Reference Document Panel -->
     <div class="panels">
       <div class="panel card">
