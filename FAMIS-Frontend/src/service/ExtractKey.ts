@@ -83,5 +83,16 @@ export default {
     const body: Record<string, any> = { reason }
     if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
     return apiClient.post(`/admin/uploads/${fileId}/reject`, body)
+  },
+  // Notifications
+  listNotifications(params: { user_id?: number; email?: string; only_unread?: boolean }) {
+    const q: Record<string, any> = {}
+    if (params.user_id) q.user_id = params.user_id
+    if (params.email) q.email = params.email
+    if (params.only_unread) q.only_unread = 1
+    return apiClient.get('/notifications', { params: q })
+  },
+  markNotificationRead(body: { notification_id: number; user_id?: number; email?: string }) {
+    return apiClient.post('/notifications/mark-read', body)
   }
 };

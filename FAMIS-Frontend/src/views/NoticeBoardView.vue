@@ -1,36 +1,50 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useNotificationStore } from '@/stores/notificationStore'
 import NoticeMessage from '@/components/NoticeMessage.vue'
-import { onMounted } from 'vue'
+import ExtractKey from '@/service/ExtractKey'
+import { onMounted, ref } from 'vue'
 
-const route = useRoute()
-const router = useRouter()
-const notificationStore = useNotificationStore()
-const { notifications } = storeToRefs(notificationStore)
+type Row = {
+  id: number
+  event_type: string
+  title: string
+  body: string
+  actor_email?: string | null
+  created_at: string
+  is_read: 0 | 1
+}
 
-onMounted(() => {
-  const taskId = route.params.taskId
-  if (typeof taskId === 'string') {
-    notificationStore.startPolling(taskId)
+const rows = ref<Row[]>([])
+
+async function loadNotifications() {
+  try {
+    const raw = sessionStorage.getItem('user_info')
+    let email: string | undefined
+    if (raw) {
+      try { email = JSON.parse(raw)?.email } catch {}
+    }
+    const res = await ExtractKey.listNotifications({ email })
+    rows.value = Array.isArray(res.data?.notifications) ? res.data.notifications : []
+  } catch {
+    rows.value = []
   }
-})
+}
+
+onMounted(loadNotifications)
 </script>
 
 <template>
-  <div class="status-container" v-if="notifications.length > 0">
+  <div class="status-container">
     <div class="header">
       <h2 class="header-title">Notification Board</h2>
     </div>
     <div class="noti-list">
       <transition-group name="list" tag="div">
         <NoticeMessage
-          v-for="(noti, index) in notifications.slice().reverse()"
-          :key="noti.timestamp + '-' + index"
-          :status="noti.status"
-          :message="noti.message"
-          :time="noti.timestamp"
+          v-for="(n, index) in rows"
+          :key="n.id"
+          :status="'complete'"
+          :message="n.body || n.title"
+          :time="n.created_at"
           class="notification-card"
         />
       </transition-group>

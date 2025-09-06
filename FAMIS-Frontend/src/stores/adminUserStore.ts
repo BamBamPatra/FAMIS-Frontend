@@ -53,7 +53,16 @@ export const useAdminUserStore = defineStore('adminUsers', {
     async changeRole(userId: number, role: AdminRole) {
       try {
         // Expected backend endpoint: PATCH /admin/users/:id/role
-        await axios.patch(`${backend}/admin/users/${userId}/role`, { role })
+        // Attach actor_id from current session so backend can audit/notify with changed_by
+        let actorId: number | undefined
+        try {
+          const raw = sessionStorage.getItem('user_info')
+          if (raw) {
+            const u = JSON.parse(raw)
+            if (typeof u?.user_id === 'number') actorId = u.user_id
+          }
+        } catch {}
+        await axios.patch(`${backend}/admin/users/${userId}/role`, { role, actor_id: actorId })
         const u = this.users.find(u => u.id === userId)
         if (u) u.role = role
       } catch {
