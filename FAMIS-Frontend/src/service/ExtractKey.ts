@@ -57,8 +57,11 @@ export default {
   getDocTypes() {
   return apiClient.get('/doc-types')
   },
-  getTaskBoard() {
-    return apiClient.get('/task-board')
+  getTaskBoard(params?: { user_id?: number; email?: string }) {
+    const q: Record<string, any> = {}
+    if (params?.user_id) q.user_id = params.user_id
+    if (params?.email) q.email = params.email
+    return apiClient.get('/task-board', { params: q })
   },
   listMyUploads(payload: { user_id?: number; email?: string }) {
     return apiClient.post('/uploads/by-user', payload, { headers: { 'Content-Type': 'application/json' } })

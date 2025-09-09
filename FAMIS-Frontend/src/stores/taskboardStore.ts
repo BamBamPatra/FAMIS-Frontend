@@ -26,7 +26,17 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     },
     async hydrateFromBackend() {
       try {
-        const res = await extractKeyAPI.getTaskBoard()
+        // filter by current user if available
+        let params: any = {}
+        try {
+          const raw = sessionStorage.getItem('user_info')
+          if (raw) {
+            const u = JSON.parse(raw)
+            if (typeof u?.user_id === 'number') params.user_id = u.user_id
+            else if (u?.email) params.email = u.email
+          }
+        } catch {}
+        const res = await extractKeyAPI.getTaskBoard(params)
         const data = Array.isArray(res.data?.data) ? res.data.data : []
         for (const item of data) {
           if (item?.task_id) this.addTaskId(String(item.task_id))
