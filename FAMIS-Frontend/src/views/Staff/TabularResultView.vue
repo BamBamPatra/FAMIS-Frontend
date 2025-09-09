@@ -143,16 +143,23 @@ async function handleSave() {
 }
 
 function confirmDiscard() {
-  financialStore.setKeys([]);
-  showConfirmCancelPopup.value = false;
-
-  if (taskId) {
-    taskStore.removeTask(taskId); 
+  showConfirmCancelPopup.value = false
+  if (!taskId) {
+    showAutoClosePopup('Task ID not found')
+    return
   }
-
-  showAutoClosePopup("Successfully canceled extract key of this document.", 1500, () => {
-    router.push({ name: 'uploadFile' }); 
-  });
+  ExtractKey.deleteTask(taskId)
+    .then(() => {
+      taskStore.removeTask(taskId)
+      financialStore.setKeys([])
+      showAutoClosePopup('Deleted successfully', 1200, () => {
+        router.push({ name: 'uploadFile' })
+      })
+    })
+    .catch((e: any) => {
+      const msg = e?.response?.data?.message || 'Delete failed'
+      showAutoClosePopup(msg)
+    })
 }
 </script>
 

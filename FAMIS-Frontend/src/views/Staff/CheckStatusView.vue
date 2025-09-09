@@ -87,6 +87,17 @@ function closeDetail() {
   extractedItems.value = []
 }
 
+async function deleteSelected() {
+  if (!selectedFile.value) return
+  try {
+    await api.deleteUpload(selectedFile.value.file_id)
+    closeDetail()
+    await fetchMyUploads()
+  } catch (e: any) {
+    detailError.value = e?.response?.data?.message || 'Delete failed'
+  }
+}
+
 function toggleDatePicker() {
   showDatePicker.value = !showDatePicker.value
   if (showDatePicker.value && filterButtonRef.value) {
@@ -245,6 +256,9 @@ function fmtTime(ts: string) {
               </tr>
             </tbody>
           </table>
+          <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="danger-btn" @click="deleteSelected">Delete</button>
+          </div>
         </div>
       </div>
     </div>

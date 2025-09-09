@@ -74,6 +74,12 @@ export default {
   getExtractedByFile(fileId: number) {
     return apiClient.get(`/uploads/${fileId}/extracted`)
   },
+  deleteTask(taskId: string) {
+    return apiClient.delete(`/tasks/${taskId}`)
+  },
+  deleteUpload(fileId: number) {
+    return apiClient.delete(`/uploads/${fileId}`)
+  },
   approveUpload(fileId: number, reviewerId?: number) {
     const body: Record<string, any> = {}
     if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
