@@ -54,23 +54,15 @@ async function reject() {
 const rejectReason = ref("")
 const showRejectModal = ref(false)
 
-async function handleConfirm() {
-  if (decision.value === "approved") {
-    await approve()
-  } else if (decision.value === "rejected") {
-    showRejectModal.value = true
-  } else {
-    alert("Please select Approved or Rejected")
-  }
-}
+// Decision dropdown replaced by explicit buttons; keep helpers for backward-compat if needed
 
 async function confirmReject() {
   if (!rejectReason.value.trim()) {
     alert("Please enter reason for rejection")
     return
   }
-
-  await ExtractKey.rejectUpload(fileId, rejectReason.value)  
+  const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
+  await ExtractKey.rejectUpload(fileId, rejectReason.value, isNaN(reviewerId) ? undefined : reviewerId)
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
@@ -198,15 +190,10 @@ watchEffect(() => {
 
       <!-- Action Buttons (fixed at bottom-right) -->
     <div class="action-buttons">
-      <select v-model="decision" class="decision-dropdown" :disabled="!isPending">
-        <option value="" disabled>Select decision</option>
-        <option value="approved" class="approved">Approved</option>
-        <option value="rejected" class="rejected">Rejected</option>
-      </select>
-
       <div class="button-group">
         <button class="btn-cancel" @click="router.back()">CANCEL</button>
-        <button class="btn-confirm" @click="handleConfirm" :disabled="!isPending">CONFIRM</button>
+        <button class="btn-reject" @click="showRejectModal = true" :disabled="!isPending">REJECT</button>
+        <button class="btn-confirm" @click="approve" :disabled="!isPending">APPROVE</button>
       </div>
     </div>
 
@@ -355,6 +342,21 @@ watchEffect(() => {
 
 .btn-confirm:hover {
   background-color: #387F39;
+}
+
+.btn-reject {
+  background-color: #ef4444;
+  color: white;
+  font-weight: bold;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.btn-reject:hover {
+  background-color: #b91c1c;
 }
 
 /* Modal backdrop */

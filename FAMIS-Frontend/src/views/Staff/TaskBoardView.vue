@@ -92,7 +92,7 @@ const filteredTasks = computed(() => {
 
     if (!search) return inDateRange
 
-    const matchName = task.filename.toLowerCase().includes(search)
+    const matchName = (task.filename || '').toLowerCase().includes(search)
     return matchName && inDateRange
   })
 })

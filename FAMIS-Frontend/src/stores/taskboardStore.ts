@@ -17,7 +17,9 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         this.taskIds.map(taskId =>
           extractKeyAPI.getStatus(taskId).then(res => {
             if (res.data.status === 'complete') {
-              return { ...res.data, task_id: taskId }
+              // prefer display_name for showing
+              const name = res.data.display_name || res.data.filename
+              return { ...res.data, task_id: taskId, filename: name }
             }
           }).catch(() => null)
         )
