@@ -120,7 +120,8 @@ async function handleSave() {
       email: auth.userInfo?.email,
       filename: financialStore.fileName || 'unknown.pdf',
       image_path: fileBase64.value ? `data:application/pdf;base64,${fileBase64.value}` : `/tmp/${financialStore.fileName || 'unknown.pdf'}`,
-      structured_data: financialStore.financialKeys
+      structured_data: financialStore.financialKeys,
+      task_id: taskId
     }
     console.log('[SAVE PAYLOAD - RESULT VIEW]', payload)
     const res = await ExtractKey.saveKeys(payload)

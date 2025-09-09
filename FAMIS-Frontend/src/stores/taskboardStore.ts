@@ -4,7 +4,8 @@ import extractKeyAPI from '@/service/ExtractKey'
 export const useTaskBoardStore = defineStore('taskBoard', {
   state: () => ({
     taskIds: [] as string[],
-    completedTasks: [] as any[]
+    completedTasks: [] as any[],
+    byId: {} as Record<string, any>
   }),
   actions: {
     addTaskId(taskId: string) {
@@ -14,15 +15,23 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     },
     async fetchCompletedTasks() {
       const results = await Promise.all(
-        this.taskIds.map(taskId =>
-          extractKeyAPI.getStatus(taskId).then(res => {
+        this.taskIds.map(async (taskId) => {
+          // DB-backed staged item
+          if (taskId.startsWith('file:')) {
+            return this.byId[taskId] || null
+          }
+          // Memory task
+          try {
+            const res = await extractKeyAPI.getStatus(taskId)
             if (res.data.status === 'complete') {
-              // prefer display_name for showing
               const name = res.data.display_name || res.data.filename
-              return { ...res.data, task_id: taskId, filename: name }
+              const obj = { ...res.data, task_id: taskId, filename: name }
+              this.byId[taskId] = obj
+              return obj
             }
-          }).catch(() => null)
-        )
+          } catch {}
+          return null
+        })
       )
       this.completedTasks = results.filter(Boolean)
     },
@@ -42,6 +51,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         const data = Array.isArray(res.data?.data) ? res.data.data : []
         for (const item of data) {
           if (item?.task_id) this.addTaskId(String(item.task_id))
+          if (item?.task_id) this.byId[String(item.task_id)] = item
         }
         // Optionally keep a mirror list for UI that expects results shape
         // Here we just map minimal fields

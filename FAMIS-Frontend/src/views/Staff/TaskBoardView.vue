@@ -17,10 +17,12 @@ const router = useRouter()
 const taskStore = useTaskBoardStore()
 const auth = useAuthStore()
 
-onMounted(() => {
+onMounted(async () => {
   dateRange.value = null  
   searchQuery.value = ''         
-  taskStore.fetchCompletedTasks()
+  // Ensure we always hydrate from backend (DB-backed staged items) when entering this page
+  try { await taskStore.hydrateFromBackend() } catch {}
+  await taskStore.fetchCompletedTasks()
 })
 
 async function confirmTask(task: any) {
@@ -34,7 +36,8 @@ async function confirmTask(task: any) {
     email: auth.userInfo?.email,
     filename: task.filename,
     image_path: `data:application/pdf;base64,${task.file_base64}`,
-    structured_data: typeof task.result === 'string' ? task.result : JSON.stringify(task.result)
+    structured_data: typeof task.result === 'string' ? task.result : JSON.stringify(task.result),
+    task_id: task.task_id
   }
   console.log('[SAVE PAYLOAD]', payload)
 
