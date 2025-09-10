@@ -15,6 +15,7 @@ interface ArchivedUpload {
   reviewer_department?: string | null
   uploader_email?: string | null
   uploader_department?: string | null
+  title?: string | null
 }
 
 const loading = ref(false)
@@ -62,7 +63,10 @@ const filtered = computed(() => {
   if (end) end.setHours(23,59,59,999)
 
   return uploads.value.filter(u => {
-    const byName = !query || (u.file_name || '').toLowerCase().includes(query) || (u.reviewer_email || '').toLowerCase().includes(query)
+    const byName = !query
+      || (u.title || u.file_name || '').toLowerCase().includes(query)
+      || (u.reviewer_email || '').toLowerCase().includes(query)
+      || (u.uploader_email || '').toLowerCase().includes(query)
     const bySt = st === 'all' || (u.status || '').toLowerCase() === st
     const d = u.uploaded_at ? new Date(u.uploaded_at) : null
     const byDate = !start || !end || (d && d >= start && d <= end)
@@ -96,7 +100,7 @@ function onDateCleared() {
 <template>
   <div class="container">
     <div class="topbar">
-      <input class="search" v-model="q" placeholder="Search filename or reviewer email" />
+      <input class="search" v-model="q" placeholder="Search title, filename, uploader or reviewer email" />
       <select v-model="status" class="filter">
         <option value="all">All</option>
         <option value="approved">Approved</option>
@@ -130,14 +134,19 @@ function onDateCleared() {
           <tr>
             <th>File</th>
             <th>Status</th>
+            <th>Uploader</th>
             <th>Reviewer</th>
             <th>Uploaded</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in filtered" :key="u.file_id" @click="router.push({ name: 'verificationDocument', params: { fileId: u.file_id } })" style="cursor:pointer;">
-            <td>{{ u.file_name }}</td>
+            <td>
+              <div class="title">{{ u.title || u.file_name }}</div>
+              <div class="muted">{{ u.file_name }}</div>
+            </td>
             <td :class="u.status">{{ u.status }}</td>
+            <td>{{ u.uploader_email || '-' }}</td>
             <td>{{ u.reviewer_email || '-' }}</td>
             <td>{{ fmtDate(u.uploaded_at) }} {{ fmtTime(u.uploaded_at) }}</td>
           </tr>
@@ -162,5 +171,7 @@ function onDateCleared() {
 .rejected { color:#991b1b; font-weight:600; }
 .empty { color:#6b7280; margin-top:12px; font-style:italic; }
 .error { color:#b91c1c; }
+.muted { color:#6b7280; font-size:12px; }
+.title { font-weight:600; }
 </style>
 

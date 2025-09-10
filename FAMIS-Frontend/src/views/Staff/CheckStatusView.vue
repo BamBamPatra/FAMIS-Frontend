@@ -45,7 +45,7 @@ const filtered = computed(() => {
   const end = range ? range[1] : null
 
   return uploads.value.filter(u => {
-    const nameMatch = !q || (u.file_name || '').toLowerCase().includes(q)
+    const nameMatch = !q || (u.title || u.file_name || '').toLowerCase().includes(q)
     const stMatch = st === 'all' || (u.status || '').toLowerCase() === st
 
     const when = new Date(u.uploaded_at)
@@ -192,7 +192,7 @@ function fmtTime(ts: string) {
       <div v-for="u in filtered" :key="u.file_id" class="row" @click="openDetail(u)" style="cursor: pointer;">
     
         <div class="left">
-          <span class="filename">{{ u.file_name }}</span>
+          <span class="filename">{{ u.title || u.file_name }}</span>
           <span class="status-text" :class="(u.status || 'pending').toLowerCase()">
             {{ u.status || 'pending' }}
           </span>
@@ -212,7 +212,7 @@ function fmtTime(ts: string) {
         <!-- Modal Header -->
         <div class="modal-header">
           <div class="modal-title">
-            {{ selectedFile?.file_name }}
+            {{ selectedFile?.title || selectedFile?.file_name }}
           </div>
           <button class="modal-close" @click="closeDetail">×</button>
         </div>

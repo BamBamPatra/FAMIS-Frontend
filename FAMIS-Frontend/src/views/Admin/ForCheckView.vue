@@ -15,6 +15,7 @@ interface PendingUpload {
   uploader_department?: string
   status?: PendingStatus
   size?: string | number
+  title?: string
 }
 
 const loading = ref(false)
@@ -76,7 +77,7 @@ function fmtTime(ts?: string) {
   if (end) end.setHours(23, 59, 59, 999)
 
   return uploads.value.filter(u => {
-    const nameMatch = !q || (u.file_name || '').toLowerCase().includes(q)
+    const nameMatch = !q || (u.title || u.file_name || '').toLowerCase().includes(q)
     const stMatch = st === 'all' || (u.status || 'pending') === st
 
     const fileDate = parseDate(u.uploaded_at)
@@ -174,7 +175,7 @@ let intervalId: number | null = null
         
         <div class="left">
           <div class="name"> 
-            {{ u.file_name }} <span class="muted">waiting for check...</span>
+            {{ u.title || u.file_name }} <span class="muted">waiting for check...</span>
           </div>
           <div class="dept">{{ u.uploader_department || '-' }}</div>
           <div class="email">{{ u.uploader_email || '-' }}</div> 
