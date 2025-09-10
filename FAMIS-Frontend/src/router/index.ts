@@ -115,8 +115,9 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // Default redirect: ถ้าเข้า / แล้วเป็น admin -> ไป /admin
-  if (to.path === '/' && isAuthenticated && role === 'admin') {
+  // อย่าบังคับ redirect อัตโนมัติบน refresh; ปล่อยให้คงหน้าเดิม
+  // แต่ถ้าเข้า root และเป็น admin ครั้งแรก ให้ส่งไป /admin
+  if (to.path === '/' && isAuthenticated && role === 'admin' && from.path === '/') {
     next('/admin')
     return
   }

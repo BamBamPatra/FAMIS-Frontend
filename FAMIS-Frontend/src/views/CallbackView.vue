@@ -132,7 +132,12 @@ const getAccessToken = async () => {
     }
 
     // Persist user profile with role for UI gating
-    authStore.setUserInfo({ email: authzData.user.email, role: authzData.user.role, user_id: authzData.user.user_id, department: authzData.user.department })
+    authStore.setUserInfo({
+      email: authzData.user.email,
+      role: authzData.user.role,
+      user_id: authzData.user.user_id,
+      department: authzData.user.department
+    })
     
     // Redirect to main application
     router.push('/')

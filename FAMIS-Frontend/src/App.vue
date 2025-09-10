@@ -62,10 +62,10 @@ onMounted(async () => {
       // light polling to keep badge and list updated
       pendingCountInterval = window.setInterval(refreshPendingCount, 15000)
     }
-    if (role === 'admin') {
+    // Keep current page on refresh; only adjust when landing on root
+    const current = router.currentRoute.value?.path || '/'
+    if (current === '/' && role === 'admin') {
       router.replace('/admin')
-    } else {
-      router.replace('/')
     }
   }
 })

@@ -14,6 +14,8 @@ const error = ref('')
 const items = ref<any[]>([])
 
 const pdfUrl = ref<string>('')
+const trackStatus = ref<'pending' | 'approved' | 'rejected'>('pending')
+const trackRejectReason = ref<string>('')
 
 async function load() {
   loading.value = true
@@ -22,6 +24,9 @@ async function load() {
     const res = await ExtractKey.getExtractedByFile(fileId)
     if (res.data?.status === 'success') {
       items.value = res.data.items || []
+      const st = (res.data.track_status || '').toString().toLowerCase()
+      if (st === 'approved' || st === 'rejected' || st === 'pending') trackStatus.value = st
+      trackRejectReason.value = res.data.track_reject_reason || ''
       if (items.value.length > 0) {
         pdfUrl.value = items.value[0].file_url
       }
@@ -100,10 +105,7 @@ function authUserId(): number | undefined {
 onMounted(load)
 
 // Derived status from backend to prevent re-approval on browser back
-const uploadStatus = computed(() => {
-  const st = (items.value?.[0]?.upload_status || '').toString().toLowerCase()
-  return st || 'pending'
-})
+const uploadStatus = computed(() => trackStatus.value)
 const isPending = computed(() => uploadStatus.value === 'pending')
 
 // If already approved/rejected, reflect it in the dropdown so the UI shows current state
@@ -120,6 +122,19 @@ watchEffect(() => {
 
     <div v-if="error" class="error" style="color:#b91c1c; font-weight:600; margin: 8px 0;">
       {{ error }}
+    </div>
+
+    <!-- Top bar: Back + Status -->
+    <div class="top-bar">
+      <button class="btn-back" @click="router.back()">← Back</button>
+      <div class="top-status">
+        <span class="status-chip" :class="uploadStatus">{{ uploadStatus }}</span>
+      </div>
+    </div>
+
+    <!-- Rejected info -->
+    <div v-if="uploadStatus==='rejected' && trackRejectReason" class="reject-info">
+      Reject reason: {{ trackRejectReason }}
     </div>
 
     <!-- Reference Document Panel -->
@@ -189,7 +204,7 @@ watchEffect(() => {
     </div>
 
       <!-- Action Buttons (fixed at bottom-right) -->
-    <div class="action-buttons">
+    <div class="action-buttons" v-if="isPending">
       <div class="button-group">
         <button class="btn-cancel" @click="router.back()">CANCEL</button>
         <button class="btn-reject" @click="showRejectModal = true" :disabled="!isPending">REJECT</button>
@@ -220,6 +235,42 @@ watchEffect(() => {
   flex-direction: column;
   gap: 10px;
   padding: 10px;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+}
+
+.btn-back {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-back:hover { background: #e5e7eb; }
+
+.status-chip {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.status-chip.pending { background:#FEF3C7; color:#92400e; }
+.status-chip.approved { background:#D1FAE5; color:#065f46; }
+.status-chip.rejected { background:#FECACA; color:#991b1b; }
+
+.reject-info {
+  background: #FEE2E2;
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 0 8px;
 }
 
 .panels {
@@ -509,6 +560,5 @@ watchEffect(() => {
   border-radius: 6px;
   padding: 2px 6px;
 }
-
 
 </style>

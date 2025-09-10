@@ -27,6 +27,12 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.setItem('user_info', JSON.stringify(user))
   }
 
+  const setUserProfile = (profile: { email: string; role: string; user_id?: number; department?: string; displayName?: string }) => {
+    const merged = { ...(userInfo.value || {}), ...profile }
+    userInfo.value = merged
+    sessionStorage.setItem('user_info', JSON.stringify(merged))
+  }
+
   const logout = () => {
     accessToken.value = null
     userInfo.value = null
@@ -51,6 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     setAccessToken,
     setUserInfo,
+    setUserProfile,
     logout,
     checkAuth
   }
