@@ -21,6 +21,7 @@ const shownTasks = new Set<string>()
 
 const forCheckCount = ref(0)
 let pendingCountInterval: number | null = null
+let roleFocusHandler: ((this: Window, ev: FocusEvent) => any) | null = null
 
 onMounted(() => {
   const handleCount = (e: any) => { forCheckCount.value = e.detail || 0 }
@@ -54,6 +55,8 @@ watchEffect(() => {
 onMounted(async () => {
   await authStore.checkAuth()
   if (authStore.isAuthenticated) {
+    // Refresh role from server once on mount (in case it changed while logged-in)
+    await refreshUserRole()
     try { 
       await taskBoardStore.hydrateFromBackend() 
     } catch {}
@@ -65,6 +68,21 @@ onMounted(async () => {
       pendingCountInterval = window.setInterval(refreshPendingCount, 15000)
     }
 
+  }
+  // Keep role in sync when user returns to the tab
+  roleFocusHandler = async () => { await refreshUserRole() }
+  window.addEventListener('focus', roleFocusHandler)
+})
+
+// React to role changes and route appropriately
+watchEffect(() => {
+  const role = (authStore.userInfo?.role || '').toLowerCase()
+  const path = router.currentRoute.value.path
+  const isOnAdmin = path.startsWith('/admin') || path.startsWith('/for-check') || path.startsWith('/archive')
+  if (role === 'admin' && !isOnAdmin) {
+    router.push('/admin')
+  } else if (role !== 'admin' && isOnAdmin) {
+    router.push('/')
   }
 })
 
@@ -91,6 +109,10 @@ onUnmounted(() => {
     clearInterval(pendingCountInterval)
     pendingCountInterval = null
   }
+  if (roleFocusHandler) {
+    window.removeEventListener('focus', roleFocusHandler)
+    roleFocusHandler = null
+  }
 })
 
 async function refreshPendingCount() {
@@ -101,6 +123,24 @@ async function refreshPendingCount() {
     window.dispatchEvent(new CustomEvent('for-check-count', { detail: forCheckCount.value }))
   } catch {
     /* no-op */
+  }
+}
+
+async function refreshUserRole() {
+  try {
+    const email = authStore.userInfo?.email
+    const department = authStore.userInfo?.department || 'Student'
+    if (!email) return
+    const res = await ExtractKey.authorize(email, department)
+    if (res.data?.status === 'success') {
+      const newRole = (res.data?.user?.role || '').toLowerCase()
+      const curRole = (authStore.userInfo?.role || '').toLowerCase()
+      if (newRole && newRole !== curRole) {
+        authStore.setUserProfile({ role: newRole, department: res.data?.user?.department })
+      }
+    }
+  } catch {
+    /* ignore transient errors */
   }
 }
 </script>
