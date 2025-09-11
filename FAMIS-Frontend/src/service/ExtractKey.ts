@@ -61,6 +61,9 @@ export default {
     const q: Record<string, any> = {}
     if (params?.user_id) q.user_id = params.user_id
     if (params?.email) q.email = params.email
+
+    console.log('Calling /task-board with params:', q) 
+
     return apiClient.get('/task-board', { params: q })
   },
   listMyUploads(payload: { user_id?: number; email?: string }) {

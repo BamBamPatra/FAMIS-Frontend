@@ -20,10 +20,21 @@ const auth = useAuthStore()
 onMounted(async () => {
   dateRange.value = null  
   searchQuery.value = ''         
-  // Ensure we always hydrate from backend (DB-backed staged items) when entering this page
-  try { await taskStore.hydrateFromBackend() } catch {}
-  await taskStore.fetchCompletedTasks()
+  try {
+    console.log('Hydrating task board from backend...')
+    await taskStore.hydrateFromBackend()
+  } catch (err) {
+    console.error('Failed to hydrate task board:', err)
+  }
+
+  try {
+    console.log('Fetching completed tasks...')
+    await taskStore.fetchCompletedTasks()
+  } catch (err) {
+    console.error('Failed to fetch completed tasks:', err)
+  }
 })
+
 
 async function confirmTask(task: any) {
   const userId = auth.userInfo?.user_id

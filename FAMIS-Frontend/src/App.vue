@@ -54,21 +54,20 @@ watchEffect(() => {
 onMounted(async () => {
   await authStore.checkAuth()
   if (authStore.isAuthenticated) {
-    // Rehydrate task board (waiting for confirm) after refresh
-    try { await taskBoardStore.hydrateFromBackend() } catch {}
+    try { 
+      await taskBoardStore.hydrateFromBackend() 
+    } catch {}
+
     const role = authStore.userInfo?.role?.toLowerCase()
+
     if (role === 'admin') {
       await refreshPendingCount()
-      // light polling to keep badge and list updated
       pendingCountInterval = window.setInterval(refreshPendingCount, 15000)
     }
-    // Keep current page on refresh; only adjust when landing on root
-    const current = router.currentRoute.value?.path || '/'
-    if (current === '/' && role === 'admin') {
-      router.replace('/admin')
-    }
+
   }
 })
+
 
 const handleLogout = () => {
   authStore.logout()
