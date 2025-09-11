@@ -14,8 +14,8 @@ const error = ref('')
 const items = ref<any[]>([])
 
 const pdfUrl = ref<string>('')
-const trackStatus = ref<'pending' | 'approved' | 'rejected'>('pending')
 const trackRejectReason = ref<string>('')
+const trackStatus = ref<string>('pending')
 
 async function load() {
   loading.value = true
@@ -24,9 +24,8 @@ async function load() {
     const res = await ExtractKey.getExtractedByFile(fileId)
     if (res.data?.status === 'success') {
       items.value = res.data.items || []
-      const st = (res.data.track_status || '').toString().toLowerCase()
-      if (st === 'approved' || st === 'rejected' || st === 'pending') trackStatus.value = st
-      trackRejectReason.value = res.data.track_reject_reason || ''
+      trackRejectReason.value = (res.data?.track_reject_reason || '')
+      trackStatus.value = (res.data?.track_status || 'pending').toString().toLowerCase()
       if (items.value.length > 0) {
         pdfUrl.value = items.value[0].file_url
       }
@@ -105,7 +104,9 @@ function authUserId(): number | undefined {
 onMounted(load)
 
 // Derived status from backend to prevent re-approval on browser back
-const uploadStatus = computed(() => trackStatus.value)
+const uploadStatus = computed(() => {
+  return trackStatus.value || 'pending'
+})
 const isPending = computed(() => uploadStatus.value === 'pending')
 
 // If already approved/rejected, reflect it in the dropdown so the UI shows current state

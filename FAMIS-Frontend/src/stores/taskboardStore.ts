@@ -17,7 +17,7 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     async fetchCompletedTasks() {
       const results = await Promise.all(
         this.taskIds.map(async (taskId) => {
-          // DB-backed staged item
+          // DB-backed staged item (already in form file:<id>)
           if (taskId.startsWith('file:')) {
             return this.byId[taskId] || null
           }
@@ -36,7 +36,13 @@ export const useTaskBoardStore = defineStore('taskBoard', {
           return null
         })
       )
-      this.completedTasks = results.filter(Boolean)
+      // Remove nulls and ensure unique by task_id
+      const seen = new Set<string>()
+      this.completedTasks = results.filter(Boolean).filter((t: any) => {
+        if (seen.has(t.task_id)) return false
+        seen.add(t.task_id)
+        return true
+      })
     },
 
     async hydrateFromBackend() {
@@ -62,20 +68,27 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         for (const item of data) {
           if (!item?.task_id) continue
 
-          // ให้ task_id ของ DB task เป็น "file:<id>"
-          const taskId = String(item.task_id).startsWith('file:') ? String(item.task_id) : `file:${item.task_id}`
+          // DB task must be formatted as file:<id> already from backend
+          const taskId = String(item.task_id)
 
-          this.addTaskId(taskId)
+          // avoid duplicates
+          if (!this.taskIds.includes(taskId)) this.taskIds.push(taskId)
           this.byId[taskId] = { ...item, task_id: taskId }
         }
 
-        // Merge DB tasks กับ existing completedTasks (memory tasks)
-        const mergedTasks = [
-          ...this.completedTasks.filter(t => !t.task_id.startsWith('file:')), // memory tasks
-          ...Object.values(this.byId).filter(t => t.task_id.startsWith('file:')) // DB tasks
-        ]
+        // Merge DB tasks with existing completedTasks (memory tasks)
+        const dbTasks = Object.values(this.byId).filter((t: any) => String(t.task_id).startsWith('file:'))
+        const memoryTasks = this.completedTasks.filter((t: any) => !String(t.task_id).startsWith('file:'))
 
-        this.completedTasks = mergedTasks
+        // Ensure no duplicate task_ids
+        const seen = new Set<string>()
+        const merged = [...memoryTasks, ...dbTasks].filter((t: any) => {
+          if (seen.has(t.task_id)) return false
+          seen.add(t.task_id)
+          return true
+        })
+
+        this.completedTasks = merged
 
         console.log('Completed tasks after hydrate:', this.completedTasks)
 
