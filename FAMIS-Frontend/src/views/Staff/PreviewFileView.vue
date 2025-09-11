@@ -6,6 +6,7 @@ import { useFinancialKeyStore } from '@/stores/financialKeyStore'
 import Popup from '@/components/PopupAlert.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useToastStore } from '@/stores/popupStore'
 
 const financialStore = useFinancialKeyStore()
 const route = useRoute()
@@ -21,6 +22,8 @@ const popupMessage = ref('')
 
 const notificationStore = useNotificationStore()
 const authStore = useAuthStore()
+const toastStore = useToastStore()
+const startSound = new Audio('/notify.mp3')
 
 function showAutoClosePopup(message: string, duration = 1500) {
   popupMessage.value = message
@@ -57,6 +60,8 @@ async function handleUpload() {
   }
 
   isUploading.value = true
+  try { startSound.currentTime = 0; startSound.play().catch(() => {}) } catch {}
+  toastStore.trigger('Uploading file...','info')
   try {
     const user = {
       email: authStore.userInfo?.email as string | undefined,
