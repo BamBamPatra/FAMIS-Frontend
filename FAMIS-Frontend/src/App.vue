@@ -74,18 +74,6 @@ onMounted(async () => {
   window.addEventListener('focus', roleFocusHandler)
 })
 
-// React to role changes and route appropriately
-watchEffect(() => {
-  const role = (authStore.userInfo?.role || '').toLowerCase()
-  const path = router.currentRoute.value.path
-  const isOnAdmin = path.startsWith('/admin') || path.startsWith('/for-check') || path.startsWith('/archive')
-  if (role === 'admin' && !isOnAdmin) {
-    router.push('/admin')
-  } else if (role !== 'admin' && isOnAdmin) {
-    router.push('/')
-  }
-})
-
 
 const handleLogout = () => {
   authStore.logout()

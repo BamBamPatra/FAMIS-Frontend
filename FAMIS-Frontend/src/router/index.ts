@@ -56,13 +56,6 @@ router.beforeEach((to, from, next) => {
     if (role === 'staff') return next('/')
   }
 
-  // Protect admin pages from non-admin users
-  const adminPaths = ['/admin', '/for-check', '/archive']
-  if (adminPaths.some(p => to.path.startsWith(p))) {
-    if (role !== 'admin') return next('/')
-  }
-
-  // Redirect admin away from staff home
   if (to.path === '/' && role === 'admin') {
     return next('/admin')
   }

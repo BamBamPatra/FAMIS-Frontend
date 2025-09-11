@@ -15,13 +15,13 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     },
 
     async fetchCompletedTasks() {
-      const results = await Promise.all(
-        this.taskIds.map(async (taskId) => {
-          // DB-backed staged item (already in form file:<id>)
-          if (taskId.startsWith('file:')) {
-            return this.byId[taskId] || null
-          }
-          // Memory task
+      // Keep DB-backed tasks as-is from byId
+      const dbTasks = Object.values(this.byId).filter((t: any) => String(t.task_id).startsWith('file:'))
+
+      // Fetch memory tasks only
+      const memoryIds = this.taskIds.filter(id => !id.startsWith('file:'))
+      const memoryResults = await Promise.all(
+        memoryIds.map(async (taskId) => {
           try {
             const res = await extractKeyAPI.getStatus(taskId)
             if (res.data.status === 'complete') {
@@ -36,13 +36,18 @@ export const useTaskBoardStore = defineStore('taskBoard', {
           return null
         })
       )
-      // Remove nulls and ensure unique by task_id
+
+      const memTasks = memoryResults.filter(Boolean) as any[]
+
+      // Merge and de-dup
       const seen = new Set<string>()
-      this.completedTasks = results.filter(Boolean).filter((t: any) => {
+      const merged = [...dbTasks, ...memTasks].filter((t: any) => {
         if (seen.has(t.task_id)) return false
         seen.add(t.task_id)
         return true
       })
+
+      this.completedTasks = merged
     },
 
     async hydrateFromBackend() {
