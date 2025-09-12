@@ -20,9 +20,12 @@ const auth = useAuthStore()
 onMounted(async () => {
   dateRange.value = null  
   searchQuery.value = ''         
+
   try {
     console.log('Hydrating task board from backend...')
     await taskStore.hydrateFromBackend()
+    console.log('[Hydrate Done] byId:', JSON.stringify(taskStore.byId, null, 2))
+    console.log('[Hydrate Done] completedTasks:', JSON.stringify(taskStore.completedTasks, null, 2))
   } catch (err) {
     console.error('Failed to hydrate task board:', err)
   }
@@ -30,11 +33,12 @@ onMounted(async () => {
   try {
     console.log('Fetching completed tasks...')
     await taskStore.fetchCompletedTasks()
+    console.log('[Fetch Done] byId:', JSON.stringify(taskStore.byId, null, 2))
+    console.log('[Fetch Done] completedTasks:', JSON.stringify(taskStore.completedTasks, null, 2))
   } catch (err) {
     console.error('Failed to fetch completed tasks:', err)
   }
 })
-
 
 async function confirmTask(task: any) {
   const userId = auth.userInfo?.user_id
@@ -90,26 +94,34 @@ const filteredTasks = computed(() => {
   const start = range ? range[0] : null
   const end = range ? range[1] : null
 
+  return taskStore.completedTasks
+    .filter((task) => {
+      const taskDate = new Date(task.timestamp)
 
-  return taskStore.completedTasks.filter((task) => {
-    const taskDate = new Date(task.timestamp)
+      const startDate = start ? new Date(start) : null
+      const endDate = end ? new Date(end) : null
 
-    const startDate = start ? new Date(start) : null
-    const endDate = end ? new Date(end) : null
+      if (startDate) startDate.setHours(0, 0, 0, 0)
+      if (endDate) endDate.setHours(23, 59, 59, 999)
 
-    if (startDate) startDate.setHours(0, 0, 0, 0)
-    if (endDate) endDate.setHours(23, 59, 59, 999)
+      const inDateRange =
+        (!startDate || taskDate >= startDate) &&
+        (!endDate || taskDate <= endDate)
 
-    const inDateRange =
-      (!startDate || taskDate >= startDate) &&
-      (!endDate || taskDate <= endDate)
+      if (!search) return inDateRange
 
-    if (!search) return inDateRange
+      const combinedFields = [
+        task.filename || '',
+        task.display_name || '',
+        task.task_id?.toString() || '',
+        typeof task.result === 'string' ? task.result : JSON.stringify(task.result || {})
+      ].join(' ').toLowerCase()
 
-    const matchName = (task.filename || '').toLowerCase().includes(search)
-    return matchName && inDateRange
-  })
+      return combinedFields.includes(search) && inDateRange
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 })
+
 
 // Fliter Picker date
 const filterButtonRef = ref<HTMLElement | null>(null)
@@ -211,10 +223,14 @@ function onDateCleared() {
     >
       <div class="task-content">
         <div class="filename">
-          <span class="dot"></span>
           {{ task.filename }}
-          <span class="success-text">uploaded successfully</span>
+          <span v-if="task.display_name" class="displayname">
+            ({{ task.display_name }})
+          </span>
         </div>
+
+
+
         <div class="timestamp">
           <div class="time">{{ formatTime(task.timestamp) }}</div>
           <div class="date">{{ formatDate(task.timestamp) }}</div>
@@ -273,6 +289,20 @@ function onDateCleared() {
   font-weight: 500;
   color: #10b981;
 }
+
+.file-text {
+  font-weight: 600;
+  font-size: 23px;
+}
+
+.displayname {
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 500;
+  color: #4b5563;
+  margin-left: 8px;
+}
+
 
 .timestamp {
   text-align: right;
@@ -384,5 +414,14 @@ function onDateCleared() {
   align-items: center;
   justify-content: center;
 }
+
+.display-name {
+  font-size: 18px;
+  font-weight: 400;
+  color: #374151;
+  margin-left: 6px; /* เว้นระยะเล็กน้อยจาก filename */
+  font-style: italic;
+}
+
 
 </style>

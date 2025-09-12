@@ -1,6 +1,24 @@
 import { defineStore } from 'pinia'
 import extractKeyAPI from '@/service/ExtractKey'
 
+function normalizeTask(item: any) {
+  const taskId = item.task_id ? String(item.task_id) : null
+  if (!taskId) return null
+
+  return {
+    task_id: taskId,
+    file_id: item.file_id ?? null,
+    filename: item.filename || '',
+    display_name: item.display_name || item.filename || '',
+    timestamp: item.timestamp || new Date().toISOString(),
+    status: item.status || 'complete',
+    message: item.message || '',
+    file_base64: item.file_base64 || null,
+    result: item.result || [],
+    ...item
+  }
+}
+
 export const useTaskBoardStore = defineStore('taskBoard', {
   state: () => ({
     taskIds: [] as string[],
@@ -15,19 +33,18 @@ export const useTaskBoardStore = defineStore('taskBoard', {
     },
 
     async fetchCompletedTasks() {
-      // Keep DB-backed tasks as-is from byId
-      const dbTasks = Object.values(this.byId).filter((t: any) => String(t.task_id).startsWith('file:'))
+      const dbTasks = Object.values(this.byId).filter((t: any) =>
+        String(t.task_id).startsWith('file:')
+      )
 
-      // Fetch memory tasks only
       const memoryIds = this.taskIds.filter(id => !id.startsWith('file:'))
       const memoryResults = await Promise.all(
         memoryIds.map(async (taskId) => {
           try {
             const res = await extractKeyAPI.getStatus(taskId)
             if (res.data.status === 'complete') {
-              const name = res.data.display_name || res.data.filename
-              const obj = { ...res.data, task_id: taskId, filename: name }
-              this.byId[taskId] = obj
+              const obj = normalizeTask({ ...res.data, task_id: taskId })
+              if (obj) this.byId[taskId] = obj
               return obj
             }
           } catch (err) {
@@ -39,7 +56,6 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
       const memTasks = memoryResults.filter(Boolean) as any[]
 
-      // Merge and de-dup
       const seen = new Set<string>()
       const merged = [...dbTasks, ...memTasks].filter((t: any) => {
         if (seen.has(t.task_id)) return false
@@ -70,22 +86,23 @@ export const useTaskBoardStore = defineStore('taskBoard', {
 
         const data = Array.isArray(res.data?.data) ? res.data.data : []
 
-        for (const item of data) {
-          if (!item?.task_id) continue
+        for (const rawItem of data) {
+          const item = normalizeTask(rawItem)
+          if (!item) continue
 
-          // DB task must be formatted as file:<id> already from backend
-          const taskId = String(item.task_id)
-
-          // avoid duplicates
+          const taskId = item.task_id
           if (!this.taskIds.includes(taskId)) this.taskIds.push(taskId)
-          this.byId[taskId] = { ...item, task_id: taskId }
+          this.byId[taskId] = item
         }
 
-        // Merge DB tasks with existing completedTasks (memory tasks)
-        const dbTasks = Object.values(this.byId).filter((t: any) => String(t.task_id).startsWith('file:'))
-        const memoryTasks = this.completedTasks.filter((t: any) => !String(t.task_id).startsWith('file:'))
 
-        // Ensure no duplicate task_ids
+        const dbTasks = Object.values(this.byId).filter((t: any) =>
+          String(t.task_id).startsWith('file:')
+        )
+        const memoryTasks = this.completedTasks.filter((t: any) =>
+          !String(t.task_id).startsWith('file:')
+        )
+
         const seen = new Set<string>()
         const merged = [...memoryTasks, ...dbTasks].filter((t: any) => {
           if (seen.has(t.task_id)) return false
@@ -96,7 +113,6 @@ export const useTaskBoardStore = defineStore('taskBoard', {
         this.completedTasks = merged
 
         console.log('Completed tasks after hydrate:', this.completedTasks)
-
       } catch (err) {
         console.error('hydrateFromBackend error', err)
       }

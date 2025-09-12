@@ -141,6 +141,25 @@ function fmtTime(ts: string) {
     ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }).format(d)
     : new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
 }
+
+const showDeleteConfirmation = ref(false)
+
+function showDeleteModal() {
+  showDeleteConfirmation.value = true
+}
+
+async function confirmDelete() {
+  if (!selectedFile.value) return
+  try {
+    await api.deleteUpload(selectedFile.value.file_id)
+    closeDetail()
+    showDeleteConfirmation.value = false
+    await fetchMyUploads()
+  } catch (e: any) {
+    detailError.value = e?.response?.data?.message || 'Delete failed'
+  }
+}
+
 </script>
 
 <template>
@@ -192,7 +211,10 @@ function fmtTime(ts: string) {
       <div v-for="u in filtered" :key="u.file_id" class="row" @click="openDetail(u)" style="cursor: pointer;">
     
         <div class="left">
-          <span class="filename">{{ u.title || u.file_name }}</span>
+          <span class="filename">
+            {{ u.file_name }}
+            <span v-if="u.title" class="displayname">({{ u.title }})</span>
+          </span>
           <span class="status-text" :class="(u.status || 'pending').toLowerCase()">
             {{ u.status || 'pending' }}
           </span>
@@ -212,17 +234,33 @@ function fmtTime(ts: string) {
         <!-- Modal Header -->
         <div class="modal-header">
           <div class="modal-title">
-            {{ selectedFile?.title || selectedFile?.file_name }}
+            {{ selectedFile?.file_name }}
+            <span v-if="selectedFile?.title" class="displayname">({{ selectedFile.title }})</span>
           </div>
-          <button class="modal-close" @click="closeDetail">×</button>
+          <div class="modal-actions">
+            <button class="modal-close" @click="closeDetail">×</button>
+          </div>
         </div>
 
-        <div class="modal-sub">
+      <div class="modal-sub">
+        <div class="left-info">
           Uploaded {{ fmtDate(selectedFile?.uploaded_at) }} • {{ fmtTime(selectedFile?.uploaded_at) }}
           <span class="status-badge" :class="(selectedFile?.status || 'pending').toLowerCase()">
             {{ selectedFile?.status || 'pending' }}
           </span>
         </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon delete-inline" 
+            viewBox="0 0 640 640" @click="showDeleteModal">
+          <path d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7 
+                  110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3 
+                  529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9 
+                  48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128 
+                  208L149.1 531.1C150.7 556.4 171.7 576 197 576L443 
+                  576C468.3 576 489.3 556.4 490.9 531.1L512 208z"/>
+        </svg>
+      </div>
+
+
 
         <!-- Reject reason -->
         <div v-if="selectedFile?.status?.toLowerCase() === 'rejected' && selectedFile?.reject_reason" class="reject-box">
@@ -256,12 +294,22 @@ function fmtTime(ts: string) {
               </tr>
             </tbody>
           </table>
-          <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-            <button class="danger-btn" @click="deleteSelected">Delete</button>
-          </div>
         </div>
       </div>
     </div>
+    <div v-if="showDeleteConfirmation" class="modal-backdrop" @click.self="showDeleteConfirmation = false">
+
+      <!-- Modal delete -->
+      <div class="modal">
+        <h3>Confirm Delete</h3>
+        <p>Are you sure you want to delete <strong>{{ selectedFile?.file_name }}</strong>?</p>
+        <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="cancel-btn" @click="showDeleteConfirmation = false">Cancel</button>
+          <button class="delete-btn" @click="confirmDelete">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -459,9 +507,16 @@ function fmtTime(ts: string) {
   cursor: pointer; 
 }
 
-.modal-sub { 
-  color: #6b7280; 
-  margin-bottom: 8px; 
+.modal-sub {
+  display: flex;
+  align-items: center;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.left-info {
+  display: flex;
+  align-items: center;
 }
 
 .modal-body { 
@@ -536,5 +591,57 @@ function fmtTime(ts: string) {
   background: #f9fafb;
 }
 
+.displayname {
+  font-weight: 500;
+  color: #4b5563; 
+  margin-left: 6px;
+  font-size: 15px;
+  font-style: italic;
+}
+
+.delete-btn {
+  background-color: #ef4444; 
+  color: white;
+  border: none;
+  border-radius: 9999px; 
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.cancel-btn {
+  background-color: #797878; 
+  color: white;
+  border: none;
+  border-radius: 9999px; 
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.cancel-btn:hover {
+  background-color: #979292;
+}
+
+.delete-inline {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+  fill: #6b7280;
+  transition: fill 0.2s;
+  padding-bottom: 0;
+  padding-left: 10px;
+}
+.delete-inline:hover {
+  fill: #dc2626;
+}
 </style>
 

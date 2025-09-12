@@ -2,21 +2,19 @@
 import { onMounted, ref, computed, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ExtractKey from '@/service/ExtractKey'
-
+ 
 const route = useRoute()
 const router = useRouter()
 const fileId = Number(route.params.fileId)
-
+ 
 const decision = ref("")
-
+ 
 const loading = ref(false)
 const error = ref('')
 const items = ref<any[]>([])
-
+ 
 const pdfUrl = ref<string>('')
-const trackRejectReason = ref<string>('')
-const trackStatus = ref<string>('pending')
-
+ 
 async function load() {
   loading.value = true
   error.value = ''
@@ -24,8 +22,6 @@ async function load() {
     const res = await ExtractKey.getExtractedByFile(fileId)
     if (res.data?.status === 'success') {
       items.value = res.data.items || []
-      trackRejectReason.value = (res.data?.track_reject_reason || '')
-      trackStatus.value = (res.data?.track_status || 'pending').toString().toLowerCase()
       if (items.value.length > 0) {
         pdfUrl.value = items.value[0].file_url
       }
@@ -38,7 +34,7 @@ async function load() {
     loading.value = false
   }
 }
-
+ 
 async function approve() {
   if (!isPending.value) return
   const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
@@ -46,7 +42,7 @@ async function approve() {
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
-
+ 
 async function reject() {
   if (!isPending.value) return
   const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
@@ -54,12 +50,12 @@ async function reject() {
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
-
+ 
 const rejectReason = ref("")
 const showRejectModal = ref(false)
-
+ 
 // Decision dropdown replaced by explicit buttons; keep helpers for backward-compat if needed
-
+ 
 async function confirmReject() {
   if (!rejectReason.value.trim()) {
     alert("Please enter reason for rejection")
@@ -70,9 +66,24 @@ async function confirmReject() {
   window.dispatchEvent(new CustomEvent('for-check-updated'))
   router.push({ name: 'forCheck' })
 }
-
-
-
+ 
+const showDeleteConfirmation = ref(false)
+ 
+function showDeleteModal() {
+  showDeleteConfirmation.value = true
+}
+ 
+async function confirmDelete() {
+  try {
+    const reviewerId = Number(router.currentRoute.value?.query?.rid || authUserId())
+    await ExtractKey.deleteUpload(fileId, isNaN(reviewerId) ? undefined : reviewerId)
+    window.dispatchEvent(new CustomEvent('for-check-updated'))
+    router.push({ name: 'forCheck' })
+  } catch (e: any) {
+    alert(`Failed to delete: ${e?.response?.data?.message || e?.message || 'Network error'}`)
+  }
+}
+ 
 function getAmountClass(amount: number, page: number) {
   if (page === 1) {
     // เทียบกับทุก row ของฝั่งขวา (page > 1)
@@ -89,7 +100,7 @@ function getAmountClass(amount: number, page: number) {
   }
   return ''
 }
-
+ 
 function authUserId(): number | undefined {
   try {
     const raw = sessionStorage.getItem('user_info')
@@ -98,17 +109,16 @@ function authUserId(): number | undefined {
     return typeof obj?.user_id === 'number' ? obj.user_id : Number(obj?.user_id)
   } catch { return undefined }
 }
-
-
-
+ 
 onMounted(load)
-
+ 
 // Derived status from backend to prevent re-approval on browser back
 const uploadStatus = computed(() => {
-  return trackStatus.value || 'pending'
+  const st = (items.value?.[0]?.upload_status || '').toString().toLowerCase()
+  return st || 'pending'
 })
 const isPending = computed(() => uploadStatus.value === 'pending')
-
+ 
 // If already approved/rejected, reflect it in the dropdown so the UI shows current state
 watchEffect(() => {
   if (!isPending.value) {
@@ -117,27 +127,14 @@ watchEffect(() => {
   }
 })
 </script>
-
+ 
 <template>
   <div class="content">
-
+ 
     <div v-if="error" class="error" style="color:#b91c1c; font-weight:600; margin: 8px 0;">
       {{ error }}
     </div>
-
-    <!-- Top bar: Back + Status -->
-    <div class="top-bar">
-      <button class="btn-back" @click="router.back()">← Back</button>
-      <div class="top-status">
-        <span class="status-chip" :class="uploadStatus">{{ uploadStatus }}</span>
-      </div>
-    </div>
-
-    <!-- Rejected info -->
-    <div v-if="uploadStatus==='rejected' && trackRejectReason" class="reject-info">
-      Reject reason: {{ trackRejectReason }}
-    </div>
-
+ 
     <!-- Reference Document Panel -->
     <div class="panels">
       <div class="panel card">
@@ -170,7 +167,7 @@ watchEffect(() => {
           </tbody>
         </table>
       </div>
-
+ 
       <!-- Financial Document Panel -->
       <div class="panel card">
         <h3 class="panel-title">Financial Document</h3>
@@ -203,16 +200,21 @@ watchEffect(() => {
         </table>
       </div>
     </div>
-
-      <!-- Action Buttons (fixed at bottom-right) -->
-    <div class="action-buttons" v-if="isPending">
+ 
+    <!-- Action Buttons (fixed at bottom-right) -->
+    <div class="action-buttons">
+      
       <div class="button-group">
-        <button class="btn-cancel" @click="router.back()">CANCEL</button>
+        <div class="action-buttons-header">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 640 640" @click="showDeleteModal">
+            <path d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7 110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3 529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9 48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128 208L149.1 531.1C150.7 556.4 171.7 576 197 576L443 576C468.3 576 489.3 556.4 490.9 531.1L512 208z"/>
+      </svg>
+    </div>
         <button class="btn-reject" @click="showRejectModal = true" :disabled="!isPending">REJECT</button>
         <button class="btn-confirm" @click="approve" :disabled="!isPending">APPROVE</button>
       </div>
     </div>
-
+ 
     <!-- Modal -->
     <div v-if="showRejectModal" class="modal-backdrop">
       <div class="modal">
@@ -224,11 +226,24 @@ watchEffect(() => {
         </div>
       </div>
     </div>
+ 
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirmation" class="modal-backdrop">
+      <div class="modal">
+        <h3>Delete File</h3>
+        <p>Are you sure you want to delete this file? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button @click="showDeleteConfirmation = false">Cancel</button>
+          <button @click="confirmDelete">Delete</button>
+        </div>
+      </div>
+    </div>
+ 
     
   </div>
-
+ 
 </template>
-
+ 
 <style scoped>
 /* Layout */
 .content {
@@ -237,67 +252,32 @@ watchEffect(() => {
   gap: 10px;
   padding: 10px;
 }
-
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-}
-
-.btn-back {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #111827;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.btn-back:hover { background: #e5e7eb; }
-
-.status-chip {
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-weight: 700;
-  text-transform: capitalize;
-}
-.status-chip.pending { background:#FEF3C7; color:#92400e; }
-.status-chip.approved { background:#D1FAE5; color:#065f46; }
-.status-chip.rejected { background:#FECACA; color:#991b1b; }
-
-.reject-info {
-  background: #FEE2E2;
-  color: #991b1b;
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin: 0 8px;
-}
-
+ 
 .panels {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
-
+ 
 @media (min-width: 1024px) {
   .panels {
     flex-direction: row;
   }
 }
-
+ 
 .card {
   flex: 1;
   padding-left: 20px;
   padding-right: 20px;
 }
-
+ 
 .panel-title {
   font-size:30px;
   font-weight: 600;
   margin-bottom: 16px;
+  margin-top: 0;
 }
-
+ 
 .pdf-preview {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -309,31 +289,31 @@ watchEffect(() => {
   width: 100%;
   height: 100%;
 }
-
+ 
 /* Table */
 .table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
-
+ 
 .table th, .table td {
   border-bottom: 1px solid #eee;
   padding: 10px;
   text-align: left;
 }
-
+ 
 .table th {
   background-color: #f5f5f5;
   font-weight: 600;
   color: #555;
 }
-
+ 
 .table tbody tr:hover {
   background-color: #fafafa;
   transition: background-color 0.2s;
 }
-
+ 
 .action-buttons {
   display: flex;
   flex-direction: column;
@@ -343,13 +323,13 @@ watchEffect(() => {
   padding-right: 20px;
   margin-bottom: 20px;
 }
-
+ 
 .button-group {
   display: flex;
   gap: 12px;
   padding-top: 10px;
 }
-
+ 
 .decision-dropdown {
   padding: 10px;
   border-radius: 8px;
@@ -357,30 +337,15 @@ watchEffect(() => {
   font-size: 15px;
   margin-right: 20px;
 }
-
+ 
 .decision-dropdown option.approved {
   color: green;
 }
-
+ 
 .decision-dropdown option.rejected {
   color: red;
 }
-
-.btn-cancel {
-  background-color: #d9534f;
-  color: white;
-  font-weight: bold;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
-}
-
-.btn-cancel:hover {
-  background-color: #c9302c;
-}
-
+ 
 .btn-confirm {
   background-color: #9370db;
   color: white;
@@ -391,11 +356,11 @@ watchEffect(() => {
   cursor: pointer;
   font-size: 15px;
 }
-
+ 
 .btn-confirm:hover {
   background-color: #387F39;
 }
-
+ 
 .btn-reject {
   background-color: #ef4444;
   color: white;
@@ -406,11 +371,11 @@ watchEffect(() => {
   cursor: pointer;
   font-size: 15px;
 }
-
+ 
 .btn-reject:hover {
   background-color: #b91c1c;
 }
-
+ 
 /* Modal backdrop */
 .modal-backdrop {
   position: fixed;
@@ -418,14 +383,14 @@ watchEffect(() => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5); 
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(2px); 
+  backdrop-filter: blur(2px);
 }
-
+ 
 /* Modal box */
 .modal {
   background: #fff;
@@ -439,12 +404,12 @@ watchEffect(() => {
   gap: 20px;
   animation: fadeInScale 0.2s ease-out;
 }
-
+ 
 @keyframes fadeInScale {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
-
+ 
 .modal h3 {
   margin: 0;
   font-size: 24px;
@@ -453,11 +418,11 @@ watchEffect(() => {
   border-bottom: 1px solid #eee;
   padding-bottom: 8px;
 }
-
+ 
 /* Fixed textarea */
 .modal textarea {
   width: 100%;
-  height: 180px; 
+  height: 180px;
   padding: 14px;
   border-radius: 10px;
   border: 1px solid #ccc;
@@ -467,11 +432,11 @@ watchEffect(() => {
   outline: none;
   transition: border 0.2s;
 }
-
+ 
 .modal textarea:focus {
   border-color: #9370db;
 }
-
+ 
 /* Modal actions */
 /* Modal box */
 .modal {
@@ -486,7 +451,7 @@ watchEffect(() => {
   gap: 24px;
   animation: fadeInScale 0.25s ease-out;
 }
-
+ 
 /* Heading */
 .modal h3 {
   margin: 0;
@@ -496,7 +461,7 @@ watchEffect(() => {
   border-bottom: 2px solid #f0f0f0;
   padding-bottom: 12px;
 }
-
+ 
 .modal textarea {
   width: 610px;
   border-radius: 12px;
@@ -505,8 +470,8 @@ watchEffect(() => {
   background: #fafafa;
   transition: border 0.25s, background 0.25s;
 }
-
-
+ 
+ 
 /* Actions */
 .modal-actions {
   display: flex;
@@ -514,7 +479,7 @@ watchEffect(() => {
   gap: 14px;
   margin-top: 8px;
 }
-
+ 
 .modal-actions button {
   padding: 12px 28px;
   border: none;
@@ -524,42 +489,59 @@ watchEffect(() => {
   font-size: 17px;
   transition: all 0.2s;
 }
-
+ 
 /* Cancel */
 .modal-actions button:first-child {
   background: #f5f5f5;
   color: #444;
 }
-
+ 
 .modal-actions button:first-child:hover {
   background: #e57373;
   color: #fff;
 }
-
+ 
 /* Submit */
 .modal-actions button:last-child {
   background: #7a5dc7;
   color: #fff;
 }
-
+ 
 .modal-actions button:last-child:hover {
   background: #387F39;
 }
-
+ 
 .highlight-green {
   color: green;
   font-weight: bold;
-  background-color: #e6ffed; 
+  background-color: #e6ffed;
   border-radius: 6px;
   padding: 2px 6px;
 }
-
+ 
 .highlight-red {
   color: red;
   font-weight: bold;
-  background-color: #ffe6e6; 
+  background-color: #ffe6e6;
   border-radius: 6px;
   padding: 2px 6px;
 }
-
+.action-buttons-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px;
+  gap: 12px;
+}
+ 
+.icon {
+  width: 30px;
+  cursor: pointer;
+  transition: fill 0.3s;
+  fill: #000000;
+}
+ 
+.icon:hover {
+  fill: #8568a6;
+}
 </style>
+ 

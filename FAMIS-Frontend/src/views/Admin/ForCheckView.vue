@@ -175,8 +175,11 @@ let intervalId: number | null = null
         
         <div class="left">
           <div class="name"> 
-            {{ u.title || u.file_name }} <span class="muted">waiting for check...</span>
+            {{ u.file_name }}
+            <span v-if="u.title" class="displayname">({{ u.title }})</span>
+            <span class="muted">waiting for check...</span>
           </div>
+
           <div class="dept">{{ u.uploader_department || '-' }}</div>
           <div class="email">{{ u.uploader_email || '-' }}</div> 
         </div>
@@ -372,4 +375,13 @@ let intervalId: number | null = null
   padding: 12px;
   width: 150px;
 }
+
+.displayname {
+  font-weight: 500;
+  color: #4b5563; 
+  margin-left: 6px;
+  font-size: 16px;
+  font-style: italic;
+}
+
 </style>
