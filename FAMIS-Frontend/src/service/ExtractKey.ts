@@ -10,7 +10,7 @@ const apiClient = axios.create({
   withCredentials: false,
   headers: {
     Accept: 'application/json',
-    
+
   }
 });
 
@@ -42,7 +42,7 @@ export default {
 
     return apiClient.post('/process', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'  
+        'Content-Type': 'multipart/form-data'
       }
     });
   },
@@ -62,7 +62,21 @@ export default {
     if (params?.user_id) q.user_id = params.user_id
     if (params?.email) q.email = params.email
 
-    console.log('Calling /task-board with params:', q) 
+    // Fallback: ensure uploader filter is always sent
+    if (!q.user_id && !q.email) {
+      try {
+        const raw = sessionStorage.getItem('user_info')
+        if (raw) {
+          const u = JSON.parse(raw)
+          if (typeof u?.user_id === 'number') q.user_id = u.user_id
+          else if (u?.email) q.email = u.email
+        }
+      } catch {
+        /* no-op */
+      }
+    }
+
+    console.log('Calling /task-board with params:', q)
 
     return apiClient.get('/task-board', { params: q })
   },

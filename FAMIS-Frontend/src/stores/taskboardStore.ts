@@ -23,13 +23,20 @@ export const useTaskBoardStore = defineStore('taskBoard', {
   state: () => ({
     taskIds: [] as string[],
     completedTasks: [] as any[],
-    byId: {} as Record<string, any>
+    byId: {} as Record<string, any>,
+    ownerKey: null as string | null,
   }),
   actions: {
     addTaskId(taskId: string) {
       if (!this.taskIds.includes(taskId)) {
         this.taskIds.push(taskId)
       }
+    },
+
+    reset() {
+      this.taskIds = []
+      this.completedTasks = []
+      this.byId = {}
     },
 
     async fetchCompletedTasks() {
@@ -78,6 +85,12 @@ export const useTaskBoardStore = defineStore('taskBoard', {
           }
         } catch (err) {
           console.warn('Failed to parse user_info', err)
+        }
+
+        const newOwnerKey = params.user_id ? `id:${params.user_id}` : (params.email ? `email:${String(params.email).toLowerCase()}` : null)
+        if (newOwnerKey && newOwnerKey !== this.ownerKey) {
+          this.reset()
+          this.ownerKey = newOwnerKey
         }
 
         console.log('Hydrate TaskBoard params:', params)
