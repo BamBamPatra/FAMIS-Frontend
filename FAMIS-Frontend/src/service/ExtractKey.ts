@@ -1,4 +1,7 @@
 import axios from 'axios';
+import type { AxiosRequestHeaders } from 'axios'
+
+type HeadersLike = { set?: (name: string, value: string) => void } & Record<string, string>
 
 // During dev, prefer hitting the Vite proxy at /api to avoid CORS
 const defaultBase = (typeof window !== 'undefined' && window.location?.hostname === 'localhost')
@@ -19,8 +22,17 @@ apiClient.interceptors.request.use((config) => {
   try {
     const token = sessionStorage.getItem('access_token')
     if (token) {
-      config.headers = config.headers || {}
-      ;(config.headers as any).Authorization = `Bearer ${token}`
+      const authValue = `Bearer ${token}`
+      const existing = (config.headers as HeadersLike | undefined)
+      const headersObj: HeadersLike = existing || {}
+      if (typeof headersObj.set === 'function') {
+        headersObj.set('Authorization', authValue)
+      } else {
+        ;(headersObj as Record<string, string>)['Authorization'] = authValue
+      }
+      if (!existing) {
+        config.headers = headersObj as unknown as AxiosRequestHeaders
+      }
     }
   } catch {
     /* no-op */
@@ -30,7 +42,7 @@ apiClient.interceptors.request.use((config) => {
 
 export default {
   authorize(email: string, department?: string | null) {
-    const payload: Record<string, any> = { email }
+    const payload: Record<string, unknown> = { email }
     if (department) payload.department = department
     return apiClient.post('/auth/authorize', payload, { headers: { 'Content-Type': 'application/json' } })
   },
@@ -46,7 +58,7 @@ export default {
       }
     });
   },
-  saveKeys(payload: Record<string, any>) {
+  saveKeys(payload: Record<string, unknown>) {
     return apiClient.post('/save', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -58,7 +70,7 @@ export default {
   return apiClient.get('/doc-types')
   },
   getTaskBoard(params?: { user_id?: number; email?: string }) {
-    const q: Record<string, any> = {}
+    const q: Record<string, unknown> = {}
     if (params?.user_id) q.user_id = params.user_id
     if (params?.email) q.email = params.email
 
@@ -79,6 +91,26 @@ export default {
     console.log('Calling /task-board with params:', q)
 
     return apiClient.get('/task-board', { params: q })
+  },
+  getTaskBoardCount(params?: { user_id?: number; email?: string }) {
+    const q: Record<string, unknown> = {}
+    if (params?.user_id) q.user_id = params.user_id
+    if (params?.email) q.email = params.email
+
+    if (!q.user_id && !q.email) {
+      try {
+        const raw = sessionStorage.getItem('user_info')
+        if (raw) {
+          const u = JSON.parse(raw)
+          if (typeof u?.user_id === 'number') q.user_id = u.user_id
+          else if (u?.email) q.email = u.email
+        }
+      } catch {
+        /* no-op */
+      }
+    }
+
+    return apiClient.get('/task-board/count', { params: q })
   },
   listMyUploads(payload: { user_id?: number; email?: string }) {
     return apiClient.post('/uploads/by-user', payload, { headers: { 'Content-Type': 'application/json' } })
@@ -101,18 +133,18 @@ export default {
     return apiClient.delete(`/uploads/${fileId}`)
   },
   approveUpload(fileId: number, reviewerId?: number) {
-    const body: Record<string, any> = {}
+    const body: Record<string, unknown> = {}
     if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
     return apiClient.post(`/admin/uploads/${fileId}/approve`, body)
   },
   rejectUpload(fileId: number, reason?: string, reviewerId?: number) {
-    const body: Record<string, any> = { reason }
+    const body: Record<string, unknown> = { reason }
     if (typeof reviewerId === 'number') body.reviewer_id = reviewerId
     return apiClient.post(`/admin/uploads/${fileId}/reject`, body)
   },
   // Notifications
   listNotifications(params: { user_id?: number; email?: string; only_unread?: boolean }) {
-    const q: Record<string, any> = {}
+    const q: Record<string, unknown> = {}
     if (params.user_id) q.user_id = params.user_id
     if (params.email) q.email = params.email
     if (params.only_unread) q.only_unread = 1
