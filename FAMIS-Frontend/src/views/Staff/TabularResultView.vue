@@ -27,7 +27,7 @@ const taskId = route.params.taskId as string | undefined
 const docTypeOptions = ref<{ DocTypeID: number, DocTypeName: string }[]>([])
 
 onMounted(async () => {
-  isEditing.value = false 
+  isEditing.value = false
   try {
     if (!taskId) {
       showPopup.value = true
@@ -41,21 +41,56 @@ onMounted(async () => {
     const taskInfo = notiTasks.find((t: any) => t.id === taskId)
     financialStore.setFileName(taskInfo?.name ?? `task_${taskId}.pdf`)
 
-    const res = await ExtractKey.getStatus(taskId)
-    if (res.data.status === 'error') {
-      showPopup.value = true
-      popupMessage.value = res.data.message || 'Error fetching data'
-      return
-    }
+    // If the task is DB-backed (file:ID), fetch via file id instead of /status
+    if (taskId.startsWith('file:')) {
+      const rawId = taskId.split(':', 2)[1]
+      const fileId = Number(rawId)
+      if (!Number.isFinite(fileId)) {
+        showPopup.value = true
+        popupMessage.value = 'Invalid file id'
+        return
+      }
+      const res = await ExtractKey.getExtractedByFile(fileId)
+      if (res.data.status !== 'success') {
+        showPopup.value = true
+        popupMessage.value = res.data.message || 'Error fetching file data'
+        return
+      }
+      const items = Array.isArray(res.data.items) ? res.data.items : []
+      // Map backend shape to FinancialKey[] used by store
+      const keys: FinancialKey[] = items.map((r: any) => ({
+        document_type: r.doc_type_name || r.doc_type_id,
+        bill_number: r.bill_number,
+        supplier_name: r.supplier_name,
+        amount: r.amount,
+        payment_date: r.payment_date,
+        signature: r.signature,
+        page: r.page,
+        description: ''
+      }))
+      financialStore.setKeys(keys)
+      const fileUrl = items[0]?.file_url
+      if (fileUrl) {
+        pdfUrl.value = `${fileUrl}`
+      }
+    } else {
+      // Memory task: use /status
+      const res = await ExtractKey.getStatus(taskId)
+      if (res.data.status === 'error') {
+        showPopup.value = true
+        popupMessage.value = res.data.message || 'Error fetching data'
+        return
+      }
 
-    financialStore.setKeys(res.data.result)
+      financialStore.setKeys(res.data.result)
 
-    if (res.data.file_base64) {
-      const bin = atob(res.data.file_base64)
-      const arr = new Uint8Array(bin.length)
-      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
-      pdfUrl.value = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }))
-      fileBase64.value = res.data.file_base64
+      if (res.data.file_base64) {
+        const bin = atob(res.data.file_base64)
+        const arr = new Uint8Array(bin.length)
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+        pdfUrl.value = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }))
+        fileBase64.value = res.data.file_base64
+      }
     }
   } catch {
     showPopup.value = true
@@ -113,7 +148,7 @@ async function handleSave() {
     return
   }
   isSaving.value = true
-  
+
   try {
     const payload = {
       user_id: auth.userInfo?.user_id,
@@ -127,7 +162,7 @@ async function handleSave() {
     const res = await ExtractKey.saveKeys(payload)
     if (res.data.status === 'success') {
     if (taskId) {
-      taskStore.removeTask(taskId) 
+      taskStore.removeTask(taskId)
     }
     showAutoClosePopup("Successfully recorded!", 1500, () => {
       router.push({ name: 'uploadFile' })
@@ -187,7 +222,7 @@ function confirmDiscard() {
           </svg>
         </button>
       </div>
-    
+
       <div class="footer-buttons" v-if="isEditing">
         <button @click="handleCancelEdits" class="cancel-btn">CANCEL EDIT</button>
         <button @click="handleSaveEdits" class="confirm-btn">CONFIRM EDIT</button>
@@ -413,9 +448,9 @@ function confirmDiscard() {
 
 .footer-buttons {
   display: flex;
-  justify-content: flex-end;  
-  gap: 1rem;                  
-  margin-bottom: 1rem;        
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 /* ===== Global Button Styles ===== */
@@ -517,8 +552,8 @@ function confirmDiscard() {
 
 .popup-close {
   position: absolute;
-  right: 0px;  
-  top: 0px;      
+  right: 0px;
+  top: 0px;
   border: none;
   background: transparent;
   font-size: 25px;
@@ -533,20 +568,20 @@ function confirmDiscard() {
 
 .popup-actions {
   display: flex;
-  justify-content: center; 
-  gap: 12px;               
-  margin-top: 20px;       
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .popup-actions .cancel-btn,
 .popup-actions .danger-btn {
-  padding: 8px 20px;       
+  padding: 8px 20px;
   font-weight: bold;
   border-radius: 8px;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  min-width: 100px;        
+  min-width: 100px;
 }
 
 .popup-actions .cancel-btn {

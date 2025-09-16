@@ -4,7 +4,10 @@ import type { AxiosRequestHeaders } from 'axios'
 type HeadersLike = { set?: (name: string, value: string) => void } & Record<string, string>
 
 // During dev, prefer hitting the Vite proxy at /api to avoid CORS
-const defaultBase = (typeof window !== 'undefined' && window.location?.hostname === 'localhost')
+const isLocal = (typeof window !== 'undefined') && (
+  window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1'
+)
+const defaultBase = isLocal
   ? '/api'
   : (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000')
 
@@ -39,6 +42,30 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Add response interceptor to handle unauthorized responses globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    try {
+      const status = error?.response?.status
+      if (status === 401 || status === 403) {
+        // Clear auth-related session and redirect to login
+        try {
+          sessionStorage.removeItem('access_token')
+          sessionStorage.removeItem('user_info')
+          sessionStorage.removeItem('code_verifier')
+        } catch {}
+        // Avoid infinite redirect loops on /login and /callback
+        const pathname = window?.location?.pathname || ''
+        if (pathname !== '/login' && pathname !== '/callback') {
+          window.location.href = '/login'
+        }
+      }
+    } catch {}
+    return Promise.reject(error)
+  }
+)
 
 export default {
   authorize(email: string, department?: string | null) {
