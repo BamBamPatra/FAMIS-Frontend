@@ -212,9 +212,10 @@ async function confirmDelete() {
     
         <div class="left">
           <span class="filename">
-            {{ u.file_name }}
-            <span v-if="u.title" class="displayname">({{ u.title }})</span>
+            <span v-if="u.title" class="displayname">{{ u.title }}...</span>
+            <span v-if="u.file_name" class="filename-text">({{ u.file_name }})</span>
           </span>
+
           <span class="status-text" :class="(u.status || 'pending').toLowerCase()">
             {{ u.status || 'pending' }}
           </span>
@@ -233,10 +234,10 @@ async function confirmDelete() {
 
         <!-- Modal Header -->
         <div class="modal-header">
-          <div class="modal-title">
-            {{ selectedFile?.file_name }}
-            <span v-if="selectedFile?.title" class="displayname">({{ selectedFile.title }})</span>
-          </div>
+         <div class="modal-title">
+          <span v-if="selectedFile?.title" class="displayname">{{ selectedFile.title }}</span>
+          <span v-if="selectedFile?.file_name" class="filename-text">({{ selectedFile.file_name }})</span>
+        </div>
           <div class="modal-actions">
             <button class="modal-close" @click="closeDetail">×</button>
           </div>
@@ -592,12 +593,18 @@ async function confirmDelete() {
 }
 
 .displayname {
-  font-weight: 500;
-  color: #4b5563; 
-  margin-left: 6px;
+  font-weight: 600;
+  font-size: 18px;
+  color: #111827;
+  margin-right: 6px;
+}
+
+.filename-text {
   font-size: 15px;
   font-style: italic;
+  color: #4b5563;
 }
+
 
 .delete-btn {
   background-color: #ef4444; 

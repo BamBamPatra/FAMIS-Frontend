@@ -223,14 +223,15 @@ function onDateCleared() {
     >
       <div class="task-content">
         <div class="filename">
-          {{ task.filename }}
           <span v-if="task.display_name" class="displayname">
-            ({{ task.display_name }})
+            {{ task.display_name }} .....
+          </span>
+          <span v-if="task.filename" class="filename-text">
+            ({{ task.filename }})
           </span>
         </div>
 
-
-
+      
         <div class="timestamp">
           <div class="time">{{ formatTime(task.timestamp) }}</div>
           <div class="date">{{ formatDate(task.timestamp) }}</div>
@@ -300,9 +301,14 @@ function onDateCleared() {
   font-style: italic;
   font-weight: 500;
   color: #4b5563;
-  margin-left: 8px;
+  margin-right: 8px; 
 }
 
+.filename-text {
+  font-size: 23px;
+  font-weight: 600;
+  color: #111827;
+}
 
 .timestamp {
   text-align: right;

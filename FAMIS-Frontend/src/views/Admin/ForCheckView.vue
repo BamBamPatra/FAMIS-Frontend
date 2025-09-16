@@ -66,7 +66,7 @@ function fmtTime(ts?: string) {
     : '-'
 }
 
-  const filtered = computed(() => {
+const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   const st = statusFilter.value
   const range = dateRange.value
@@ -77,16 +77,24 @@ function fmtTime(ts?: string) {
   if (end) end.setHours(23, 59, 59, 999)
 
   return uploads.value.filter(u => {
-    const nameMatch = !q || (u.title || u.file_name || '').toLowerCase().includes(q)
+    const combined = [
+      u.title,
+      u.file_name,
+      u.uploader_email,
+      u.uploader_department
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    const textMatch = !q || combined.includes(q)
     const stMatch = st === 'all' || (u.status || 'pending') === st
 
     const fileDate = parseDate(u.uploaded_at)
     const dateMatch =
       !start || !end || (fileDate && fileDate >= start && fileDate <= end)
 
-    return nameMatch && stMatch && dateMatch
+    return textMatch && stMatch && dateMatch
   })
 })
+
 
 function toggleDatePicker() {
   showDatePicker.value = !showDatePicker.value
@@ -175,10 +183,11 @@ let intervalId: number | null = null
         
         <div class="left">
           <div class="name"> 
-            {{ u.file_name }}
-            <span v-if="u.title" class="displayname">({{ u.title }})</span>
+            <span v-if="u.title" class="displayname">{{ u.title }}...</span>
+            <span v-if="u.file_name" class="filename"> ({{ u.file_name }})</span>
             <span class="muted">waiting for check...</span>
           </div>
+
 
           <div class="dept">{{ u.uploader_department || '-' }}</div>
           <div class="email">{{ u.uploader_email || '-' }}</div> 
@@ -377,11 +386,18 @@ let intervalId: number | null = null
 }
 
 .displayname {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.filename {
   font-weight: 500;
   color: #4b5563; 
-  margin-left: 6px;
+  margin-right: 6px;
   font-size: 16px;
   font-style: italic;
 }
+
 
 </style>
