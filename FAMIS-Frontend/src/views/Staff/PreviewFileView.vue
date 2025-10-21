@@ -13,9 +13,10 @@ const route = useRoute()
 const router = useRouter()
 const isUploading = ref(false)
 
-const pdfUrl = ref<string | null>(null)
-const selectedFileName = ref<string | null>(null)
-const file = ref<File | null>(null)
+const pdfUrls = ref<string[]>([])
+const fileNames = ref<string[]>([])
+const files = ref<File[]>([])
+const currentPreviewIndex = ref(0)
 
 const showPopup = ref(false)
 const popupMessage = ref('')
@@ -34,49 +35,63 @@ function showAutoClosePopup(message: string, duration = 1500) {
 }
 
 onMounted(() => {
-  const fileUrl = route.query.fileUrl as string | null
-  const fileName = route.query.fileName as string | null
-  console.log('fileName from route:', fileName)
+  const fileUrlsQuery = route.query.fileUrls as string | null
+  const fileNamesQuery = route.query.fileNames as string | null
+  const count = parseInt(route.query.count as string || '0')
 
-  if (fileName) {
-    selectedFileName.value = fileName
-    console.log('selectedFileName set to:', selectedFileName.value)
-    financialStore.setFileName(fileName)
+  if (fileUrlsQuery && fileNamesQuery) {
+    pdfUrls.value = fileUrlsQuery.split('|||')
+    fileNames.value = fileNamesQuery.split('|||')
   }
 
-  if (fileUrl) pdfUrl.value = fileUrl
-
-  file.value = (window as any).myFile || null
-  if (!file.value) 
+  files.value = (window as any).myFiles || []
+  if (files.value.length === 0) {
     showAutoClosePopup("No file data found to upload.")
-  return
+  }
 })
 
 
 async function handleUpload() {
-  if (!file.value) {
-    showAutoClosePopup("No file selected for upload.")
+  if (files.value.length === 0) {
+    showAutoClosePopup("No files selected for upload.")
     return
   }
 
   isUploading.value = true
   try { startSound.currentTime = 0; startSound.play().catch(() => {}) } catch {}
-  toastStore.trigger('Uploading file...','info')
+  toastStore.trigger(`Uploading ${files.value.length} file(s)...`, 'info')
+
   try {
     const user = {
       email: authStore.userInfo?.email as string | undefined,
       user_id: authStore.userInfo?.user_id as number | undefined,
     }
-    const response = await ExtractKey.processFile(file.value, user)
-    const taskId = response.data.task_id
 
-    notificationStore.startPolling(taskId, selectedFileName.value || undefined)
+    const response = await ExtractKey.processFiles(files.value, user)
+
+    // Handle response - could be single task_id or multiple task_ids
+    const taskIds = response.data.task_ids || [response.data.task_id]
 
     const oldTasks = JSON.parse(localStorage.getItem('notiTasks') || '[]')
-    const newTask = { id: taskId, name: selectedFileName.value, status: 'processing' }
-    localStorage.setItem('notiTasks', JSON.stringify([...oldTasks, newTask]))
 
-    router.push({ name: 'uploadFile' }) 
+    // Start polling for each task
+    for (let i = 0; i < taskIds.length; i++) {
+      const taskId = taskIds[i]
+      const fileName = fileNames.value[i] || `File ${i + 1}`
+
+      notificationStore.startPolling(taskId, fileName)
+
+      const newTask = { id: taskId, name: fileName, status: 'processing' }
+      oldTasks.push(newTask)
+    }
+
+    localStorage.setItem('notiTasks', JSON.stringify(oldTasks))
+
+    showAutoClosePopup(`${taskIds.length} file(s) uploaded successfully!`)
+
+    setTimeout(() => {
+      router.push({ name: 'uploadFile' })
+    }, 1500)
   } catch (error) {
     showAutoClosePopup("Upload failed.")
     console.error(error)
@@ -94,7 +109,7 @@ function pollTaskStatus(taskId: string) {
       if (job.status === 'completed') {
         clearInterval(interval)
         isUploading.value = false
-        financialStore.setKeys(job.result) 
+        financialStore.setKeys(job.result)
         router.push({ name: 'tabularResult' })
       } else if (job.status === 'error') {
         clearInterval(interval)
@@ -120,35 +135,56 @@ function handleCancel() {
 
 
 <template>
-  <div class="file-upload-wrapper" v-if="pdfUrl">
+  <div class="file-upload-wrapper" v-if="pdfUrls.length > 0">
 
-    <!-- Display File Name -->
-    <div v-if="selectedFileName" class="file-name">
-      {{ selectedFileName }}
+    <!-- Display File Count -->
+    <div class="file-count-badge">
+      {{ files.length }} file(s) selected
+    </div>
+
+    <!-- Display File Names -->
+    <div class="file-list">
+      <div v-for="(name, index) in fileNames" :key="index"
+           class="file-name-item"
+           :class="{ active: currentPreviewIndex === index }"
+           @click="currentPreviewIndex = index">
+        📄 {{ name }}
+      </div>
     </div>
 
     <!-- Upload and Cancel Button -->
     <div class="button-group">
-      <button class="upload-btn" @click="handleUpload">UPLOAD</button>
+      <button class="upload-btn" @click="handleUpload">UPLOAD ALL</button>
       <button class="cancel-btn" @click="handleCancel">CANCEL</button>
     </div>
 
-    <!-- Preview PDF -->
-    <div class="pdf-preview">
-      <embed :src="pdfUrl" type="application/pdf" width="800" height="600" />
+    <!-- Preview Current File -->
+    <div class="pdf-preview" v-if="pdfUrls[currentPreviewIndex]">
+      <div class="preview-nav" v-if="pdfUrls.length > 1">
+        <button @click="currentPreviewIndex = Math.max(0, currentPreviewIndex - 1)"
+                :disabled="currentPreviewIndex === 0">
+          ← Previous
+        </button>
+        <span>{{ currentPreviewIndex + 1 }} / {{ pdfUrls.length }}</span>
+        <button @click="currentPreviewIndex = Math.min(pdfUrls.length - 1, currentPreviewIndex + 1)"
+                :disabled="currentPreviewIndex === pdfUrls.length - 1">
+          Next →
+        </button>
+      </div>
+      <embed :src="pdfUrls[currentPreviewIndex]" type="application/pdf" width="800" height="600" />
     </div>
 
   </div>
 
   <div v-else>
-    <p>No file selected.</p>
+    <p>No files selected.</p>
   </div>
 
   <!-- Loading Overlay -->
   <div v-if="isUploading" class="overlay">
     <div class="spinner-box">
       <div class="spinner"></div>
-      <p>Uploading and Processing...</p>
+      <p>Uploading {{ files.length }} file(s)...</p>
     </div>
   </div>
 
@@ -166,22 +202,77 @@ function handleCancel() {
   margin-top: 40px;
 }
 
-.file-name {
-  background-color: #582c6d; 
+.file-count-badge {
+  background-color: #582c6d;
   color: white;
-  font-size: x-large;
+  font-size: large;
   font-weight: bold;
-  padding: 10px 24px;
-  border-radius: 12px;
-  user-select: text;
-  cursor: pointer;
-  min-width: 200px;
+  padding: 8px 20px;
+  border-radius: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  width: 80%;
 }
 
-.file-name:hover {
-  color: #8e50b2;
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 80%;
+  max-width: 800px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.file-name-item {
+  background-color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  font-size: 14px;
+}
+
+.file-name-item:hover {
+  background-color: #e8e8e8;
+}
+
+.file-name-item.active {
+  border-color: #582c6d;
+  background-color: #f0e6f6;
+  font-weight: bold;
+}
+
+.preview-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 8px 8px 0 0;
+  gap: 20px;
+}
+
+.preview-nav button {
+  background-color: #582c6d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.preview-nav button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.preview-nav span {
+  font-weight: bold;
+  color: #582c6d;
 }
 
 .button-group {

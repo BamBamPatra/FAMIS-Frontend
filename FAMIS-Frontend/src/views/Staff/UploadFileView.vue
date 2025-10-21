@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import Popup from '@/components/PopupAlert.vue'
 
 const router = useRouter()
-const selectedFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const showPopup = ref(false)
@@ -17,7 +16,7 @@ function triggerFileInput() {
 function handleDrop(event: DragEvent) {
   event.preventDefault()
   const files = event.dataTransfer?.files
-  if (files?.length) selectFile(files[0])
+  if (files?.length) selectFiles(Array.from(files))
 }
 
 function handleDragOver(event: DragEvent) {
@@ -25,8 +24,8 @@ function handleDragOver(event: DragEvent) {
 }
 
 function handleFileChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) selectFile(file)
+  const files = (event.target as HTMLInputElement).files
+  if (files?.length) selectFiles(Array.from(files))
 }
 
 function showAutoClosePopup(message: string, duration = 1500) {
@@ -37,7 +36,7 @@ function showAutoClosePopup(message: string, duration = 1500) {
   }, duration)
 }
 
-function selectFile(file: File) {
+function selectFiles(files: File[]) {
   const allowedTypes = [
     "application/pdf",
     "image/png",
@@ -47,24 +46,45 @@ function selectFile(file: File) {
   ]
   const maxSize = 25 * 1024 * 1024 // 25MB
 
-  if (!allowedTypes.includes(file.type)) {
-    showAutoClosePopup("Unsupported file format. Please upload PDF, PNG, JPG or ZIP.")
+  // Validate all files
+  const validFiles: File[] = []
+  const errors: string[] = []
+
+  for (const file of files) {
+    if (!allowedTypes.includes(file.type)) {
+      errors.push(`${file.name}: Unsupported format`)
+      continue
+    }
+
+    if (file.size > maxSize) {
+      errors.push(`${file.name}: File too large (max 25MB)`)
+      continue
+    }
+
+    validFiles.push(file)
+  }
+
+  if (errors.length > 0) {
+    showAutoClosePopup(errors.join('\n'), 3000)
+  }
+
+  if (validFiles.length === 0) {
     return
   }
 
-  if (file.size > maxSize) {
-    showAutoClosePopup("File is too large. Maximum size is 25MB.")
-    return
-  }
+  // Store files in window object for access in preview
+  ;(window as Window & { myFiles?: File[] }).myFiles = validFiles
 
-  (window as any).myFile = file
-  const fileUrl = URL.createObjectURL(file)
+  // Create URLs for preview
+  const fileUrls = validFiles.map(f => URL.createObjectURL(f))
+  const fileNames = validFiles.map(f => f.name)
 
   router.push({
     name: "previewFile",
     query: {
-      fileUrl: fileUrl,
-      fileName: file.name
+      fileUrls: fileUrls.join('|||'), // Use delimiter for multiple URLs
+      fileNames: fileNames.join('|||'),
+      count: validFiles.length.toString()
     }
   })
 }
@@ -81,13 +101,13 @@ function selectFile(file: File) {
       <svg xmlns="http://www.w3.org/2000/svg" class="icon" aria-hidden="true" focusable="false" viewBox="0 0 448 512">
         <path d="M246.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-128 128c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 109.3 192 320c0 17.7 14.3 32 32 32s32-14.3 32-32l0-210.7 73.4 73.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-128-128zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64c0 53 43 96 96 96l256 0c53 0 96-43 96-96l0-64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64c0 17.7-14.3 32-32 32L96 448c-17.7 0-32-14.3-32-32l0-64z"/>
       </svg>
-      <div class="text">DROP FILE</div>
-      <input type="file" id="fileInput" ref="fileInputRef" hidden @change="handleFileChange"/>
+      <div class="text">DROP FILES</div>
+      <input type="file" id="fileInput" ref="fileInputRef" multiple hidden @change="handleFileChange"/>
     </div>
-    
+
     <!-- File Select Button -->
-    <input type="file" id="fileInput" hidden @change="handleFileChange" />
-    <label for="fileInput" class="file-select-button">SELECT FILE</label>
+    <input type="file" id="fileInput" multiple hidden @change="handleFileChange" />
+    <label for="fileInput" class="file-select-button">SELECT FILES</label>
 
     <!-- Popup ALert -->
     <Popup :show="showPopup" :message="popupMessage" @close="showPopup = false" />

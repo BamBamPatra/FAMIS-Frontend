@@ -85,6 +85,23 @@ export default {
       }
     });
   },
+  processFiles(files: File[], user?: { email?: string; user_id?: number }) {
+    const formData = new FormData();
+
+    // Append multiple files with 'files' key
+    for (const file of files) {
+      formData.append('files', file);
+    }
+
+    if (user?.email) formData.append('email', user.email)
+    if (user?.user_id) formData.append('user_id', String(user.user_id))
+
+    return apiClient.post('/process', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
   saveKeys(payload: Record<string, unknown>) {
     return apiClient.post('/save', payload, {
       headers: { 'Content-Type': 'application/json' }
