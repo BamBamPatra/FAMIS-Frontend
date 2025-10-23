@@ -238,16 +238,17 @@ watchEffect(() => {
         </button>
       </div>
 
-      <div v-else class="status-buttons">
-        <button v-if="uploadStatus === 'approved'" class="btn-approve-prominent" disabled>
+      <div v-else class="status-display">
+        <div v-if="uploadStatus === 'approved'" class="status-badge approved">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" class="icon-approve"><path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3L278.6 310.6c-12.5 12.5-32.8 12.5-45.3 0L201.4 278.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l31.6 31.6L393.4 105.4c12.5-12.5 32.8-12.5 45.3 0zM128 192c35.3 0 64 28.7 64 64l0 192 256 0c35.3 0 64 28.7 64 64s-28.7 64-64 64l-288 0c-35.3 0-64-28.7-64-64l0-224c0-35.3 28.7-64 64-64z"/></svg>
           Approved
-        </button>
-        <div v-else-if="uploadStatus === 'rejected'" class="rejected-wrap">
-          <button class="btn-reject" disabled>Rejected</button>
+        </div>
+        <div v-else-if="uploadStatus === 'rejected'" class="status-badge rejected">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" class="icon-reject"><path d="M256 128c0-17.7 14.3-32 32-32l128 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32l-128 0c-17.7 0-32-14.3-32-32l0-64zM192 256c-17.7 0-32 14.3-32 32l0 64c0 17.7 14.3 32 32 32l256 0c17.7 0 32-14.3 32-32l0-64c0-17.7-14.3-32-32-32l-256 0zM160 416l0 64c0 17.7 14.3 32 32 32l128 0c17.7 0 32-14.3 32-32l0-64c0-17.7-14.3-32-32-32l-128 0c-17.7 0-32 14.3-32 32zM384 416l0 64c0 17.7 14.3 32 32 32l128 0c17.7 0 32-14.3 32-32l0-64c0-17.7-14.3-32-32-32l-128 0c-17.7 0-32 14.3-32 32z"/></svg>
+          Rejected
           <span v-if="trackRejectReason" class="reject-reason"> - {{ trackRejectReason }}</span>
         </div>
-        <span v-else class="muted">{{ uploadStatus }}</span>
+        <span v-else class="status-badge pending">{{ uploadStatus }}</span>
       </div>
     </div>
 
@@ -472,8 +473,49 @@ watchEffect(() => {
   cursor: default;
 }
 .status-buttons { display: flex; align-items: center; gap: 8px; }
+.status-display { display: flex; align-items: center; gap: 8px; }
 .rejected-wrap { display: inline-flex; align-items: center; gap: 6px; }
 .reject-reason { color: #991b1b; font-weight: 600; }
+
+/* Status badge styles */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: default;
+  border: 1px solid transparent;
+  transition: none;
+}
+
+.status-badge:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.status-badge.approved {
+  background-color: #D1FAE5;
+  color: #065f46;
+  border-color: #10B981;
+}
+
+.status-badge.rejected {
+  background-color: #FECACA;
+  color: #991b1b;
+  border-color: #EF4444;
+}
+
+.status-badge.pending {
+  background-color: #FEF3C7;
+  color: #92400e;
+  border-color: #F59E0B;
+}
+
+.icon-approve { width: 16px; height: 16px; fill: currentColor; }
+.icon-reject { width: 16px; height: 16px; fill: currentColor; }
 
 /* Modal backdrop */
 .modal-backdrop {

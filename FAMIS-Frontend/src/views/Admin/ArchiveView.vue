@@ -145,7 +145,9 @@ function onDateCleared() {
               <div class="title">{{ u.title || u.file_name }}</div>
               <div class="muted">{{ u.file_name }}</div>
             </td>
-            <td :class="u.status">{{ u.status }}</td>
+            <td>
+              <span class="status-badge" :class="u.status">{{ u.status }}</span>
+            </td>
             <td>{{ u.uploader_email || '-' }}</td>
             <td>{{ u.reviewer_email || '-' }}</td>
             <td>{{ fmtDate(u.uploaded_at) }} {{ fmtTime(u.uploaded_at) }}</td>
@@ -167,8 +169,36 @@ function onDateCleared() {
 .date-range-popup { position: absolute; z-index: 50; background: white; border: 1px solid #d1d5db; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12); padding: 12px; width: 150px; }
 .table { width:100%; border-collapse: collapse; }
 .table th, .table td { border-bottom:1px solid #eee; padding:10px; text-align:left; }
-.approved { color:#065f46; font-weight:600; }
-.rejected { color:#991b1b; font-weight:600; }
+
+/* Status badge styles */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: capitalize;
+  cursor: default;
+  border: 1px solid transparent;
+  transition: none;
+}
+
+.status-badge:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.status-badge.approved {
+  background-color: #D1FAE5;
+  color: #065f46;
+  border-color: #10B981;
+}
+
+.status-badge.rejected {
+  background-color: #FECACA;
+  color: #991b1b;
+  border-color: #EF4444;
+}
 .empty { color:#6b7280; margin-top:12px; font-style:italic; }
 .error { color:#b91c1c; }
 .muted { color:#6b7280; font-size:12px; }

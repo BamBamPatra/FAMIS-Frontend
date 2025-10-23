@@ -205,18 +205,18 @@ async function confirmDelete() {
 
     <div v-if="error" class="error">{{ error }}</div>
     <div v-else-if="filtered.length === 0" class="empty">No uploads found.</div>
-    
+
     <!-- List -->
     <div v-else class="list">
       <div v-for="u in filtered" :key="u.file_id" class="row" @click="openDetail(u)" style="cursor: pointer;">
-    
+
         <div class="left">
           <span class="filename">
             <span v-if="u.title" class="displayname">{{ u.title }}...</span>
             <span v-if="u.file_name" class="filename-text">({{ u.file_name }})</span>
           </span>
 
-          <span class="status-text" :class="(u.status || 'pending').toLowerCase()">
+          <span class="status-badge" :class="(u.status || 'pending').toLowerCase()">
             {{ u.status || 'pending' }}
           </span>
         </div>
@@ -246,17 +246,17 @@ async function confirmDelete() {
       <div class="modal-sub">
         <div class="left-info">
           Uploaded {{ fmtDate(selectedFile?.uploaded_at) }} • {{ fmtTime(selectedFile?.uploaded_at) }}
-          <span class="status-badge" :class="(selectedFile?.status || 'pending').toLowerCase()">
+          <span class="modal-status-badge" :class="(selectedFile?.status || 'pending').toLowerCase()">
             {{ selectedFile?.status || 'pending' }}
           </span>
         </div>
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon delete-inline" 
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon delete-inline"
             viewBox="0 0 640 640" @click="showDeleteModal">
-          <path d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7 
-                  110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3 
-                  529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9 
-                  48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128 
-                  208L149.1 531.1C150.7 556.4 171.7 576 197 576L443 
+          <path d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7
+                  110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3
+                  529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9
+                  48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128
+                  208L149.1 531.1C150.7 556.4 171.7 576 197 576L443
                   576C468.3 576 489.3 556.4 490.9 531.1L512 208z"/>
         </svg>
       </div>
@@ -315,8 +315,8 @@ async function confirmDelete() {
 </template>
 
 <style scoped>
-.container { 
-  padding: 24px; 
+.container {
+  padding: 24px;
 }
 
 .top-bar {
@@ -376,30 +376,30 @@ async function confirmDelete() {
   fill: #000;
 }
 
-.date-range-popup { 
-  position: absolute; 
-  z-index: 50; 
-  background: white; 
-  border: 1px solid #d1d5db; 
-  border-radius: 10px; 
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12); 
-  padding: 12px; 
-  width: 150px; 
+.date-range-popup {
+  position: absolute;
+  z-index: 50;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+  width: 150px;
 }
 
-.list { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 10px; 
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .row {
-  display: flex; 
-  justify-content: space-between; 
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   border: 1px solid #eee;
   border-radius: 10px;
-  padding-top: 30px; 
+  padding-top: 30px;
   padding-bottom: 30px;
   padding-left: 20px;
   padding-right: 20px;
@@ -407,105 +407,114 @@ async function confirmDelete() {
 }
 
 .left {
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   gap: 6px;
   font-size: 14px;
 }
 
-.filename { 
+.filename {
   font-weight: 600;
-  font-size: 18px; 
+  font-size: 18px;
 }
 
-.status-text {
-  font-size: 16px;
+.status-badge {
+  font-size: 14px;
   font-weight: 600;
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  border-radius: 9999px; 
+  padding: 6px 12px;
+  border-radius: 20px;
   text-transform: capitalize;
   display: inline-block;
+  border: 1px solid transparent;
+  margin-left: 12px;
+  cursor: default;
+  transition: none;
 }
 
-.status-text.pending {
-  background-color: #FEF3C7; 
+.status-badge:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.status-badge.pending {
+  background-color: #FEF3C7;
   color: #92400e;
+  border-color: #F59E0B;
 }
 
-.status-text.approved {
-  background-color: #D1FAE5; 
+.status-badge.approved {
+  background-color: #D1FAE5;
   color: #065f46;
+  border-color: #10B981;
 }
 
-.status-text.rejected {
-  background-color: #FECACA; 
+.status-badge.rejected {
+  background-color: #FECACA;
   color: #991b1b;
+  border-color: #EF4444;
 }
 
 .right {
   text-align: right;
-  font-size: 12px; 
+  font-size: 12px;
   color: #6b7280;
 }
 
-.time { 
-  font-weight: 600; 
+.time {
+  font-weight: 600;
   font-size: 16px;
 }
 
-.date { 
-  margin-top: 2px; 
+.date {
+  margin-top: 2px;
   font-size: 14px;
 }
 
-.empty { 
-  color: #6b7280; 
+.empty {
+  color: #6b7280;
   text-align: center;
   margin: 50px;
 }
-.error { 
-  color: #b91c1c; 
+.error {
+  color: #b91c1c;
 }
 
 /* Modal */
-.modal-backdrop { 
-  position: fixed; 
-  inset: 0; 
-  background: rgba(0,0,0,0.4); 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  z-index: 100; 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
 }
 
-.modal { 
-  background: #fff; 
-  border-radius: 12px; 
-  width: 90%; 
-  max-width: 960px; 
-  padding: 16px; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 960px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-.modal-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.modal-title { 
-  font-weight: 700; 
-  font-size: 18px; 
+.modal-title {
+  font-weight: 700;
+  font-size: 18px;
 }
 
-.modal-close { 
-  border: none; 
-  background: transparent; 
-  font-size: 24px; 
-  cursor: pointer; 
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
 }
 
 .modal-sub {
@@ -520,20 +529,20 @@ async function confirmDelete() {
   align-items: center;
 }
 
-.modal-body { 
-  max-height: 60vh; 
-  overflow: auto; 
+.modal-body {
+  max-height: 60vh;
+  overflow: auto;
 }
 
-.detail-table { 
-  width: 100%; 
-  border-collapse: collapse; 
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.detail-table th, .detail-table td { 
-  border: 1px solid #e5e7eb; 
-  padding: 8px; 
-  text-align: center; 
+.detail-table th, .detail-table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: center;
 }
 
 /* Status badge */
@@ -546,17 +555,44 @@ async function confirmDelete() {
   border-radius: 9999px;
   text-transform: capitalize;
 }
-.status-badge.pending {
-  background-color: #FEF3C7; 
+
+.modal-status-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 20px;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+  cursor: default;
+  transition: none;
+}
+
+.modal-status-badge:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.status-badge.pending,
+.modal-status-badge.pending {
+  background-color: #FEF3C7;
   color: #92400e;
+  border-color: #F59E0B;
 }
-.status-badge.approved {
-  background-color: #D1FAE5; 
+
+.status-badge.approved,
+.modal-status-badge.approved {
+  background-color: #D1FAE5;
   color: #065f46;
+  border-color: #10B981;
 }
-.status-badge.rejected {
-  background-color: #FECACA; 
+
+.status-badge.rejected,
+.modal-status-badge.rejected {
+  background-color: #FECACA;
   color: #991b1b;
+  border-color: #EF4444;
 }
 
 /* Reject reason box */
@@ -607,10 +643,10 @@ async function confirmDelete() {
 
 
 .delete-btn {
-  background-color: #ef4444; 
+  background-color: #ef4444;
   color: white;
   border: none;
-  border-radius: 9999px; 
+  border-radius: 9999px;
   padding: 10px 20px;
   font-size: 15px;
   font-weight: 600;
@@ -623,10 +659,10 @@ async function confirmDelete() {
 }
 
 .cancel-btn {
-  background-color: #797878; 
+  background-color: #797878;
   color: white;
   border: none;
-  border-radius: 9999px; 
+  border-radius: 9999px;
   padding: 10px 20px;
   font-size: 15px;
   font-weight: 600;
